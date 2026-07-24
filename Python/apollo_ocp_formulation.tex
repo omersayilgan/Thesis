@@ -1,0 +1,228 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+
+\setcounter{MaxMatrixCols}{20}
+\newcommand{\x}{\bm{x}}
+\newcommand{\uu}{\bm{u}}
+\newcommand{\vT}{^{\!\top}}
+% compact trig shorthand
+\newcommand{\cf}{c_\phi}\newcommand{\sfi}{s_\phi}
+\newcommand{\cth}{c_\theta}\newcommand{\sth}{s_\theta}\newcommand{\tth}{t_\theta}
+\newcommand{\cps}{c_\psi}\newcommand{\sps}{s_\psi}
+
+\title{\textbf{Apollo Lunar Module --- One-Shot Motion-Planning OCP}\\[2pt]
+\large Optimal Control Problem Formulation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.5em}
+
+\section*{State vector (17)}
+
+\[
+\x =
+\big[\;
+\underbrace{x_E,\,y_E,\,z_E}_{\text{position }\bm r_E},\;
+\underbrace{u,\,v,\,w}_{\text{body vel. }\bm v_b},\;
+\underbrace{\phi,\,\theta,\,\psi}_{\text{Euler }\bm\Theta},\;
+\underbrace{p,\,q,\,r}_{\text{body rates }\bm\omega},\;
+\underbrace{T,\;\delta_p,\dot\delta_p,\;\delta_y,\dot\delta_y}_{\text{actuator states}}
+\;\big]\vT
+\]
+
+Frames: $E$ is the (flat-Moon) surface frame, $B$ the body frame ($x$ fwd,
+$y$ right, $z$ down); $z_E\le 0$ is above ground.
+
+\section*{Input vector (19)}
+
+\[
+\uu =
+\big[\;
+T_c,\;\delta_{p,c},\;\delta_{y,c},\;
+f_1,\,f_2,\,\dots,\,f_{16}
+\;\big]\vT
+\]
+
+where $T_c,\delta_{p,c},\delta_{y,c}$ are the commanded thrust and pitch/yaw
+gimbal angles, and $f_1,\dots,f_{16}$ are the individual RCS thruster forces.
+
+\section*{State equations \ $\dot\x = f(\x,\uu)$}
+
+With the shorthand $c_\ast=\cos\ast$, $s_\ast=\sin\ast$, $t_\ast=\tan\ast$, and
+$m,\,J=\operatorname{diag}(I_{xx},I_{yy},I_{zz}),\,g$ the mass, inertia and lunar
+gravity, the continuous dynamics are
+
+\begin{align}
+\dot{\bm r}_E &= C_{E/B}(\bm\Theta)\,\bm v_b
+   && \text{(navigation)}\\[4pt]
+\dot{\bm v}_b &= -\,\bm\omega\times\bm v_b \;+\; \bm g_b
+   \;+\; \tfrac{1}{m}\big(\bm F_T+\bm F_{\mathrm{rcs}}\big)
+   && \text{(translation, body frame)}\\[4pt]
+\dot{\bm\Theta} &= E(\bm\Theta)\,\bm\omega
+   && \text{(attitude kinematics)}\\[4pt]
+\dot{\bm\omega} &= J^{-1}\big(\bm M-\bm\omega\times J\bm\omega\big)
+   && \text{(Euler's equations)}
+\end{align}
+
+closed by the actuator states
+\[
+\dot T=\frac{T_c-T}{\tau_T},
+\qquad
+\ddot\delta_p=\omega_n^2(\delta_{p,c}-\delta_p)-2\zeta\omega_n\dot\delta_p,
+\qquad
+\ddot\delta_y=\omega_n^2(\delta_{y,c}-\delta_y)-2\zeta\omega_n\dot\delta_y .
+\]
+
+\noindent\textbf{Rotation matrix} (body $\to$ surface, 3--2--1 Euler):
+\[
+C_{E/B}=
+\begin{bmatrix}
+\cth\cps & \sfi\sth\cps-\cf\sps & \cf\sth\cps+\sfi\sps\\[2pt]
+\cth\sps & \sfi\sth\sps+\cf\cps & \cf\sth\sps-\sfi\cps\\[2pt]
+-\sth    & \sfi\cth            & \cf\cth
+\end{bmatrix},
+\qquad
+E=
+\begin{bmatrix}
+1 & \sfi\tth & \cf\tth\\[2pt]
+0 & \cf      & -\sfi\\[2pt]
+0 & \sfi/\cth & \cf/\cth
+\end{bmatrix}.
+\]
+
+\noindent\textbf{Forces and moments.} The gimballed engine thrust, gravity, and
+the coupled Coriolis term expand (component-wise) as
+\[
+\bm F_T=
+\begin{bmatrix} T\,s_{\delta_p}\\[2pt] -T\,c_{\delta_p}s_{\delta_y}\\[2pt] -T\,c_{\delta_p}c_{\delta_y}\end{bmatrix}\!,
+\quad
+\bm g_b= g\begin{bmatrix}-\sth\\ \sfi\cth\\ \cf\cth\end{bmatrix}\!,
+\quad
+\bm\omega\times\bm v_b=
+\begin{bmatrix} q w-r v\\ r u-p w\\ p v-q u\end{bmatrix}\!,
+\quad
+\bm\omega\times J\bm\omega=
+\begin{bmatrix}(I_{zz}-I_{yy})\,qr\\ (I_{xx}-I_{zz})\,rp\\ (I_{yy}-I_{xx})\,pq\end{bmatrix}\!.
+\]
+The RCS force $\bm F_{\mathrm{rcs}}$ and total moment $\bm M$ are
+\[
+\begin{bmatrix}\bm F_{\mathrm{rcs}}\\[2pt]\bm M_{\mathrm{rcs}}\end{bmatrix}
+= B\,\bm f,
+\qquad
+\bm M=\underbrace{\begin{bmatrix}-d_z\,T_y\\ d_z\,T_x\\ 0\end{bmatrix}}_{\text{gimbal offset }d_z=\SI{2.5}{m}}
++\;\bm M_{\mathrm{rcs}},
+\]
+where $T_x,T_y$ are the first two components of $\bm F_T$, and $B$ is the fixed
+$6\times16$ RCS allocation matrix
+\[
+B=\big[\; \bm d_i \;;\; \bm r_i\times\bm d_i \;\big]_{i=1}^{16},
+\qquad
+\bm r_i=\text{thruster position},\quad \bm d_i=\text{unit fire direction}.
+\]
+
+\section*{Discretisation}
+
+Direct multiple shooting on a uniform grid of $N=80$ intervals,
+$\Delta t=\SI{1}{s}$ (horizon $\SI{80}{s}$), with a 4th-order Runge--Kutta
+integrator $\Phi_{\mathrm{RK4}}$:
+\[
+\x_0 = \x_{\mathrm{init}},
+\qquad
+\x_{k+1} = \Phi_{\mathrm{RK4}}\!\big(\x_k,\uu_k;\Delta t\big),
+\quad k=0,\dots,N-1 .
+\]
+
+\section*{Cost function}
+
+\[
+\begin{aligned}
+J =\;&
+\sum_{k=0}^{N-1}
+\Big[
+(\x_k-\x_{\mathrm{ref}})\vT Q_s (\x_k-\x_{\mathrm{ref}})
++(\uu_k-\uu_{\mathrm{ref}})\vT R\, (\uu_k-\uu_{\mathrm{ref}})
+\Big]\\
+&+\sum_{k=1}^{N-1}
+\Delta\uu_k\vT R_\Delta\,\Delta\uu_k
+\;+\;(\x_N-\x_{\mathrm{ref}})\vT Q_f (\x_N-\x_{\mathrm{ref}})
+\end{aligned}
+\]
+
+with $\Delta\uu_k=\uu_k-\uu_{k-1}$. The middle sum is a \emph{control-rate}
+(move-suppression) penalty: unlike $R$, which penalises command \emph{magnitude},
+$R_\Delta$ penalises how fast the commands \emph{change}, damping gimbal-command
+oscillation. The references are $\x_{\mathrm{ref}}=\bm 0$ except the terminal
+altitude (see cut-off, below), and
+\[
+\uu_{\mathrm{ref}}=\big[\,T_{\mathrm{hover}},\,0,\,0,\,0,\dots,0\,\big]\vT,
+\qquad T_{\mathrm{hover}}=m\,g .
+\]
+Diagonal weights (element-wise; actuator states carry zero weight), grouped
+as $[\,\text{pos}\mid\text{vel}\mid\text{att}\mid\text{rate}\mid\text{act}\,]$:
+\begingroup\small
+\begin{align*}
+Q_s &= \operatorname{diag}\!\big(\,20,20,30 \,\big|\, 60,60,60 \,\big|\, 20,20,1 \,\big|\, 30,30,30 \,\big|\, 0,0,0,0,0\,\big)\\[3pt]
+Q_f &= \operatorname{diag}\!\big(\,5000,5000,8000 \,\big|\, 4000,4000,4000 \,\big|\, 6000,6000,400 \,\big|\, 10^4,10^4,10^4 \,\big|\, 0,0,0,0,0\,\big)\\[3pt]
+R   &= \operatorname{diag}\!\big(\,10^{-7};\; 8,8;\; \underbrace{5\!\cdot\!10^{-4},\dots}_{16}\,\big),
+\qquad
+R_\Delta = \operatorname{diag}\!\big(\,10^{-6};\; 4000,4000;\; \underbrace{10^{-3},\dots}_{16}\,\big)
+\end{align*}
+\endgroup
+
+\section*{Path constraints}
+
+\begingroup\small
+\[
+\begin{aligned}
+\text{state } (\forall k=0,\dots,N):\quad
+& z_E \le 0, &&
+-V_{\max}\le u,v,w\le V_{\max}, & V_{\max}&=\SI{60}{m/s}\\
+& -\Theta_{\max}\le \phi,\theta,\psi\le \Theta_{\max}, && \Theta_{\max}=45^\circ, &&\\
+& -\Omega_{\max}\le p,q,r\le \Omega_{\max}, && \Omega_{\max}=10^\circ/\text{s}, &&\\
+& T_{\min}\le T\le T_{\max}, && -\delta_{\max}\le \delta_p,\delta_y\le \delta_{\max}, & \delta_{\max}&=6^\circ\\[4pt]
+\text{input } (\forall k=0,\dots,N-1):\quad
+& T_{\min}\le T_c\le T_{\max}, && -\delta_{\max}\le \delta_{p,c},\delta_{y,c}\le \delta_{\max}, &&\\
+& 0\le f_i\le F_{\mathrm{rcs}},\ i=1,\dots,16, && F_{\mathrm{rcs}}=\SI{445}{N}, &&
+\end{aligned}
+\]
+\endgroup
+\noindent with $[T_{\min},T_{\max}]=[4560,\,45040]\ \si{N}$.
+
+\section*{Two-phase landing with engine cut-off}
+
+The powered OCP above targets a low \emph{contact} altitude
+$z_{E}=-h_{\mathrm{contact}}$ ($h_{\mathrm{contact}}=\SI{1}{m}$) over the pad,
+rather than the ground. At contact the DPS is cut and the last stretch to the
+surface is an \emph{analytic}, engine-off ballistic settle: from the powered
+terminal state the thrust is hard-cut ($T:=0$, gimbals zeroed, RCS off) and
+$\dot\x=f(\x,\bm 0)$ is integrated with fine steps until $z_E=0$. For a near-rest
+contact the touchdown speed is
+\[
+v_{\mathrm{td}} \;=\; \sqrt{\,w_{\mathrm{c}}^2 + 2\,g\,h_{\mathrm{contact}}\,},
+\]
+$w_{\mathrm{c}}$ being the vertical descent rate at cut-off. This mirrors the real
+DPS shutdown at contact and keeps the OCP well-posed near $z=0$ (no thrust gating
+or hover pathology).
+
+\vspace{0.6em}
+\noindent\textbf{Remarks.}
+\begin{itemize}\itemsep2pt
+  \item Thrust and gimbal limits appear \emph{twice} --- as state bounds on the
+        actual $T,\delta_p,\delta_y$ and as input bounds on the commands ---
+        because the actuators are dynamic states driven by their commands.
+  \item The attainable RCS wrench set is the image of the per-thruster box
+        $0\le f_i\le F_{\mathrm{rcs}}$ under $B$ (a coupled zonotope), not an
+        axis-aligned box.
+  \item There is \emph{no} terminal equality constraint; the final state is driven
+        only softly by $Q_f$ toward the contact condition.
+\end{itemize}
+
+\end{document}

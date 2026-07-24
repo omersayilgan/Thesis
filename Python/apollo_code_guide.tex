@@ -1,0 +1,169 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\textbf{Apollo Lunar Module --- One-Shot Motion-Planning OCP}\\[2pt]
+\large Code Guide \;(\code{apollo\_full.py})}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.5em}
+
+\section*{Overview}
+
+\code{apollo\_full.py} is a single self-contained script that plans a soft lunar
+landing. It builds \emph{one} open-loop optimal control problem (OCP), solves the
+resulting nonlinear program (NLP) \emph{once}, appends a short analytic
+engine-cut-off phase, and plots the result. The method is \textbf{direct multiple
+shooting} with an \textbf{RK4} integrator, assembled with CasADi's \code{Opti}
+modelling layer and solved by \textbf{IPOPT}. The end-to-end pipeline is
+
+\[
+\text{parameters}\;\longrightarrow\;
+\boxed{\code{solve\_landing}}\;\longrightarrow\;
+\boxed{\code{cutoff\_freefall}}\;\longrightarrow\;
+\text{report + plots}.
+\]
+
+\section*{File layout}
+
+The file follows six banner-marked sections:
+\begin{enumerate}\itemsep1pt
+  \item \textbf{Parameters} --- three \code{@dataclass}es (\code{LMParams},
+        \code{OCPConfig}, \code{Scenario}).
+  \item \textbf{Dynamics} --- the continuous model \code{flat\_moon\_6dof} and the
+        integrators.
+  \item \textbf{OCP build \& solve} --- \code{solve\_landing} and the analytic
+        \code{cutoff\_freefall}.
+  \item \textbf{Landing report} --- \code{print\_report}, \code{print\_cutoff\_report}.
+  \item \textbf{Plots} --- states, controls, actuators, thrusters.
+  \item \textbf{Trajectory plot} + \code{\_\_main\_\_} driver.
+\end{enumerate}
+
+\section*{1. Parameters}
+
+Everything tunable lives in three dataclasses, so no magic numbers are buried in
+the logic:
+\begin{itemize}\itemsep2pt
+  \item \code{LMParams} --- the vehicle: mass, inertia $J$, lunar gravity, DPS
+        thrust limits $[T_{\min},T_{\max}]$, gimbal limit, the actuator models
+        (thrust first-order lag $\tau_T$, gimbal second-order $\omega_n,\zeta$),
+        and the 16-thruster RCS geometry. \code{rcs\_geometry()} returns the
+        $6\times16$ allocation matrix $B$ mapping thruster forces to a body
+        wrench; \code{B\_rcs} caches it (it is queried thousands of times while
+        the graph is built).
+  \item \code{OCPConfig} --- the problem: horizon \code{N}, step \code{dt},
+        \code{integrator}, the path limits, the cost weights
+        (\code{Qs,Qf,Rw,Rd}), and the cut-off altitude \code{h\_contact}.
+  \item \code{Scenario} --- the initial state \code{x0} (position, velocity,
+        attitude, rates) and the target \code{x\_target}.
+\end{itemize}
+
+\section*{2. State, dynamics and integrators}
+
+The rigid body carries 12 states; five \emph{actuator} states are appended so the
+optimiser sees the real, rate-limited hardware response:
+
+\begingroup\small
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Index & Symbol & Meaning\\
+\midrule
+0--2   & $x_E,y_E,z_E$ & surface-frame position ($z_E\le0$ above ground)\\
+3--5   & $u,v,w$       & body-frame velocity\\
+6--8   & $\phi,\theta,\psi$ & Euler angles (3--2--1)\\
+9--11  & $p,q,r$       & body rates\\
+12     & $T$           & actual thrust (1st-order lag toward $T_c$)\\
+13--14 & $\delta_p,\dot\delta_p$ & pitch gimbal (2nd-order toward $\delta_{p,c}$)\\
+15--16 & $\delta_y,\dot\delta_y$ & yaw gimbal (2nd-order toward $\delta_{y,c}$)\\
+\bottomrule
+\end{tabular}
+\end{center}
+\endgroup
+
+\code{flat\_moon\_6dof(x,u,lm)} returns $\dot{\bm x}$: navigation
+($\dot{\bm r}=C_{E/B}\bm v$), body-frame translation (gravity + gimballed thrust
++ RCS force), Euler kinematics, Euler's rotational equations, and the actuator
+ODEs. \code{rk4\_step} advances one step with classical RK4; \code{rk2\_step}
+(Heun) is a cheaper alternative, and \code{INTEGRATORS} is the \code{\{'rk4','rk2'\}}
+registry \code{solve\_landing} selects from.
+
+\section*{3. Building and solving the OCP (\code{solve\_landing})}
+
+The decision variables are the full state trajectory
+$X\in\mathbb R^{17\times(N+1)}$ and the commands $U\in\mathbb R^{19\times N}$.
+The constraints and objective are assembled on \code{Opti}:
+\begin{itemize}\itemsep2pt
+  \item \textbf{Initial condition} $X_{:,0}=\bm x_0$.
+  \item \textbf{Dynamics (equality)} --- multiple-shooting defects
+        $X_{:,k+1}=\Phi_{\mathrm{RK4}}(X_{:,k},U_{:,k})$ for every interval.
+  \item \textbf{Path bounds} --- altitude, velocity, attitude, rate, thrust and
+        gimbal limits on the states, and thrust/gimbal/RCS limits on the commands.
+  \item \textbf{Cost} --- a stage term (state error $Q_s$ + command effort $R$),
+        a \emph{control-rate} term $R_\Delta\lVert\Delta u_k\rVert^2$ that damps
+        gimbal chatter, and a terminal term $Q_f$ pulling toward the contact
+        condition ($z_E=-\code{h\_contact}$).
+  \item \textbf{Warm start} --- states linearly interpolated $\bm x_0\!\to\!$
+        target, thrust held at hover; a good guess cuts IPOPT iterations.
+\end{itemize}
+IPOPT runs with the \textbf{exact Hessian} (fewer, more informative iterations)
+and \code{expand=True}, which rewrites the problem graph from MX to SX so the
+derivatives evaluate about twice as fast. The \code{acceptable\_*} tolerances let
+it stop at a good feasible point instead of grinding to the tight tol. The
+function returns the solved \code{(Xs, Us)}.
+
+\section*{4. Engine cut-off and touchdown (\code{cutoff\_freefall})}
+
+The powered OCP deliberately ends a metre or so up, at the \emph{contact}
+altitude. \code{cutoff\_freefall} then models the real DPS shutdown: it hard-cuts
+the thrust ($T:=0$, gimbals zeroed, RCS off) and integrates the same 6-DOF
+dynamics with fine \SI{0.02}{s} steps until $z_E=0$, interpolating the final
+sub-step so touchdown sits exactly on the ground. For a near-rest contact the
+touchdown speed is $v_{\mathrm{td}}=\sqrt{w_c^2+2gh_{\mathrm{contact}}}$. This
+keeps the OCP well-posed near $z=0$ (no thrust gating, no hovering pathology).
+
+\section*{5. Output}
+
+\code{print\_report} summarises the powered terminal state (position, speed,
+attitude vs. success thresholds); \code{print\_cutoff\_report} shows the cut-off
+event and the analytic touchdown. Five plot helpers save PNGs: \code{plot\_states},
+\code{plot\_controls} (DPS + net RCS wrench), \code{plot\_actuators}
+(commanded vs. actual), \code{plot\_thrusters} (16 jets), and
+\code{plot\_trajectory\_with\_axes} (3-D path with body-axis triads; the free-fall
+segment is stitched on via \code{np.hstack([Xs, Xff])}).
+
+\section*{Tuning \& performance knobs}
+
+\begingroup\small
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Knob & Effect & Trade-off\\
+\midrule
+\code{N}, \code{dt}      & grid size / horizon & smaller $\Rightarrow$ faster solve, coarser near ground\\
+\code{integrator}        & \code{rk4} / \code{rk2} & \code{rk2} cheaper/step but often more iterations\\
+\code{expand}            & SX graph & $\sim\!2\times$ faster derivatives (kept on)\\
+\code{h\_contact}        & cut-off altitude & lower $\Rightarrow$ softer touchdown $\sqrt{2gh}$\\
+\code{Rd}[gimbal]        & move-suppression & higher $\Rightarrow$ smoother gimbals, stiffer NLP\\
+\code{Qf}                & terminal accuracy & higher $\Rightarrow$ tighter landing, harder solve\\
+\bottomrule
+\end{tabular}
+\end{center}
+\endgroup
+
+\noindent The dominant cost is IPOPT's KKT factorisation times the iteration
+count, so \code{N} is the biggest speed lever; the trajectory becomes feasible
+early and the remaining iterations polish optimality on a poorly-scaled problem.
+
+\end{document}
