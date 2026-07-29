@@ -32,24 +32,37 @@ def main(out='apollo_trajectory.npz'):
     engine_on = np.concatenate([np.ones(Xs.shape[1], bool),
                                 np.zeros(Xff.shape[1] - 1, bool)])
 
-    # actuator activity per frame (from the actual state; zero during free-fall)
-    thrust = np.concatenate([Xs[A.IDX_T,  :], Xff[A.IDX_T,  1:]])   # DPS thrust [N]
-    gimbal = np.vstack([                                            # (2, M) dp, dy
-        np.concatenate([Xs[A.IDX_DP, :], Xff[A.IDX_DP, 1:]]),
-        np.concatenate([Xs[A.IDX_DY, :], Xff[A.IDX_DY, 1:]])])
+    # actuator activity per frame (from the actual state; zero during free-fall).
+    # Per engine first, then lumped for the animator (which draws a single plume).
+    def stitch(row):
+        return np.concatenate([Xs[row, :], Xff[row, 1:]])
+
+    thrust_eng = np.vstack([stitch(j) for j in A.IDX_T])          # (n_eng, M)
+    gimbal_eng = np.stack([np.vstack([stitch(A.IDX_DP[i]),
+                                      stitch(A.IDX_DY[i])])
+                           for i in range(lm.n_eng)])             # (n_eng, 2, M)
+    eng_pos = np.vstack([lm.eng_pos(i) for i in range(lm.n_eng)]) # (n_eng, 3)
+
+    # `thrust`/`gimbal` keep the single-engine shape animate_landing.py expects:
+    # total thrust (so thrust/T_max is still the correct throttle fraction) and
+    # the thrust-weighted mean gimbal, i.e. the direction of the net TVC force.
+    thrust = thrust_eng.sum(axis=0)                               # (M,)
+    w      = thrust_eng / np.maximum(thrust, 1e-9)
+    gimbal = np.einsum('em,eam->am', w, gimbal_eng)               # (2, M)
 
     # 16 RCS thruster firings aligned to frames: control k acts over interval k;
     # the contact node and the free-fall carry no RCS (engine-off settle).
     rcs = np.zeros((lm.n_rcs, M))
-    rcs[:, :Us.shape[1]] = Us[3:3 + lm.n_rcs, :]
+    rcs[:, :Us.shape[1]] = Us[A.N_U_DPS:A.N_U_DPS + lm.n_rcs, :]
 
     # constant RCS geometry (body frame) so the animator stays dependency-light
     rcs_pos, rcs_dir, _ = lm.rcs_geometry()
 
     np.savez(out, pos=pos, att=att, t=t, engine_on=engine_on,
              thrust=thrust, gimbal=gimbal, rcs=rcs,
+             thrust_eng=thrust_eng, gimbal_eng=gimbal_eng, eng_pos=eng_pos,
              rcs_pos=rcs_pos, rcs_dir=rcs_dir,
-             T_max=lm.T_max, F_rcs=lm.F_rcs_per,
+             T_max=lm.T_max, T_max_eng=lm.T_max_eng, F_rcs=lm.F_rcs_per,
              x0=np.asarray(sc.x0[:3], float), pad=np.zeros(3),
              cut_index=Xs.shape[1] - 1)
     print(f"[saved] {out}  —  {M} frames, t = 0..{t[-1]:.1f} s, "
