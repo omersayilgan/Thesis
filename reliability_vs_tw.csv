@@ -1,0 +1,22 @@
+Category,Spacecraft,T/W,RCS class,p_rcs,R_rcs (worst),Engine class,p_eng,R_eng (propulsive/engine-out),Reliability score,Normalised (none),Plotted
+LEO Satellites,GRACE-FO (per satellite),3.3979e-05,cold_gas,0.003,1,cold_gas,0.003,1,3.3333e+02,333.3333,yes
+LEO Satellites,Sentinel-3A,6.5262e-04,monoprop,0.005,1,n/a,n/a,n/a,2.0000e+02,200.0000,yes
+GEO Satellites,Solar Dynamics Observatory (SDO),2.1948e-02,biprop,0.01,1,biprop,0.01,0,1.0000e+02,100.0000,yes
+GEO Satellites,Meteosat Second Generation (MSG),4.3848e-02,biprop,0.01,1,biprop,0.01,1,1.0000e+02,100.0000,yes
+Crewed Vehicles,Orion (CM + European Service Module),1.3756e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
+Crewed Vehicles,Apollo Command & Service Module,3.3063e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
+Crewed Vehicles,Apollo Lunar Module,4.6803e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
+Deep Space Probes,Juno,1.8144e-02,monoprop,0.005,2,biprop,0.01,0,4.0000e+04,40000.0000,yes
+Deep Space Probes,Cassini (Cassini-Huygens),1.6575e-02,monoprop,0.005,3,biprop,0.01,1,1.0000e+02,100.0000,yes
+Deep Space Probes,New Horizons,5.8026e-03,monoprop,0.005,0,monoprop,0.005,3,8.0000e+06,8000000.0000,yes
+Deep Space Probes,Europa Clipper,1.1604e-02,biprop,0.01,3,n/a,n/a,n/a,1.0000e+06,1000000.0000,yes
+Deep Space Probes,Voyager 1,1.7016e-03,monoprop,0.005,2,monoprop,0.005,3,4.0000e+04,40000.0000,yes
+Boosters,Delta IV Heavy,1.3165e+00,n/a,n/a,n/a,biprop,0.01,0,n/a,n/a,no (no T/W)
+Boosters,Ariane 5 ECA,1.9767e+00,n/a,n/a,n/a,biprop,0.01,0,n/a,n/a,no (no T/W)
+Boosters,Vega-C,2.2579e+00,n/a,n/a,n/a,solid,0.015,0,n/a,n/a,no (no T/W)
+Boosters,Vega,2.1898e+00,n/a,n/a,n/a,solid,0.015,0,n/a,n/a,no (no T/W)
+LEO Satellites,SMAP,n/d,monoprop,0.005,1,n/a,n/a,n/a,2.0000e+02,200.0000,no (no T/W)
+LEO Satellites,Sentinel-1A,n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
+GEO Satellites,GOES-16 (GOES-R),n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
+GEO Satellites,GOES-19 (GOES-U),n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
+Crewed Vehicles,Crew Dragon (Dragon 2),n/d,biprop,0.01,3,n/a,n/a,n/a,1.0000e+06,1000000.0000,no (no T/W)
