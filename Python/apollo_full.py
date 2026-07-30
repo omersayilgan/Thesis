@@ -80,10 +80,45 @@ class LMParams:
     gimbal_wn:   float = 4.0     # gimbal actuator natural frequency  [rad/s] (~0.6 Hz)
     gimbal_zeta: float = 0.7     # gimbal actuator damping ratio  [-]
 
+    # Per-engine thrust efficiency in (0, 1]: the force the engine actually
+    # delivers is eta * T, where T is its (bounded) internal thrust state.  A
+    # value below 1 models an engine that cannot convert its full commanded
+    # thrust into useful force — the propellant still buys T, so the shortfall
+    # is lost power, not saved fuel.  Keyed by engine index; absent means 1.0.
+    thrust_eff_eng: dict = field(default_factory=dict)
+
+    # Per-engine gimbal-actuator overrides, for degraded-hardware studies.
+    # Keyed by engine index; anything absent uses the nominal values above.
+    # e.g. gimbal_wn_eng={1: 0.6} leaves engine 0 healthy and makes engine 1's
+    # gimbal an order of magnitude more sluggish.
+    gimbal_wn_eng:   dict = field(default_factory=dict)
+    gimbal_zeta_eng: dict = field(default_factory=dict)
+
     # RCS  —  4 quads, 4 thrusters each = 16 thrusters
     F_rcs_per: float = 445.0     # max thrust per single thruster  [N]
     n_quads:   int   = 4
     rcs_arm:   float = 1.7       # quad radius from centreline (x-y plane) [m]
+
+    def eta_of(self, i):
+        """Thrust efficiency of engine i — delivered force / internal thrust."""
+        return self.thrust_eff_eng.get(i, 1.0)
+
+    def thrust_is_degraded(self, i):
+        """True if engine i delivers less force than its thrust state."""
+        return self.eta_of(i) != 1.0
+
+    def wn_of(self, i):
+        """Gimbal natural frequency of engine i  [rad/s]."""
+        return self.gimbal_wn_eng.get(i, self.gimbal_wn)
+
+    def zeta_of(self, i):
+        """Gimbal damping ratio of engine i  [-]."""
+        return self.gimbal_zeta_eng.get(i, self.gimbal_zeta)
+
+    def gimbal_is_degraded(self, i):
+        """True if engine i's gimbal differs from the nominal actuator."""
+        return (self.wn_of(i) != self.gimbal_wn
+                or self.zeta_of(i) != self.gimbal_zeta)
 
     @property
     def n_rcs(self):   return 4 * self.n_quads          # 16 thrusters
@@ -202,6 +237,13 @@ class OCPConfig:
     Rd: np.ndarray = field(default_factory=lambda: np.array(
         [1e-6, 4000.0, 4000.0] * N_ENG + [1e-3] * 16, dtype=float))
 
+    # IPOPT iteration budget. Generous by default — a feasible scenario here
+    # converges in ~85 iterations, so this only ever binds on a *pathological*
+    # problem (e.g. an untrimmable engine-out configuration), where IPOPT will
+    # otherwise grind through restoration phases for thousands of iterations.
+    # Lower it when the point of the run is to establish infeasibility quickly.
+    max_iter: int = 5000
+
 
 @dataclass
 class Scenario:
@@ -211,6 +253,13 @@ class Scenario:
         np.deg2rad(2.0), np.deg2rad(-3.0), np.deg2rad(10.0),
         np.deg2rad(0.3), np.deg2rad(-0.4), np.deg2rad(0.1)]))
     x_target: np.ndarray = field(default_factory=lambda: np.zeros(12))
+
+    # Engine-out fault: indices of engines that are dead for the whole horizon.
+    # A failed engine has *all five* of its actuator states and *all three* of
+    # its commands pinned to zero, so it contributes no force and no moment —
+    # the surviving engine(s) must trim the resulting thrust asymmetry with
+    # gimbal deflection plus RCS. Empty tuple = nominal, all engines healthy.
+    failed_eng: tuple = ()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -252,9 +301,14 @@ def flat_moon_6dof(x, u, lm):
         dp_cmd = u[IDX_U_DP[i]]
         dy_cmd = u[IDX_U_DY[i]]
 
-        Tx =  T_ * ca.sin(dp)
-        Ty = -T_ * ca.sin(dy) * ca.cos(dp)
-        Tz = -T_ * ca.cos(dp) * ca.cos(dy)
+        # only eta of the internal thrust becomes force; the rest is lost power.
+        # The actuator dynamics below still act on the full T_, so the engine
+        # burns propellant for T_ while the vehicle only feels T_eff.
+        T_eff = lm.eta_of(i) * T_
+
+        Tx =  T_eff * ca.sin(dp)
+        Ty = -T_eff * ca.sin(dy) * ca.cos(dp)
+        Tz = -T_eff * ca.cos(dp) * ca.cos(dy)
 
         Fx += Tx;  Fy += Ty;  Fz += Tz
 
@@ -268,7 +322,8 @@ def flat_moon_6dof(x, u, lm):
         # thrust: first order      Tdot = (T_cmd - T)/tau
         Tdot = (T_cmd - T_) / lm.tau_T
         # gimbals: second order     d̈ = wn^2 (cmd - d) - 2 zeta wn ḋ
-        wn, z = lm.gimbal_wn, lm.gimbal_zeta
+        # wn/zeta are per-engine, so one engine's actuator can be degraded
+        wn, z = lm.wn_of(i), lm.zeta_of(i)
         dp_ddot = wn*wn * (dp_cmd - dp) - 2*z*wn * dp_dot
         dy_ddot = wn*wn * (dy_cmd - dy) - 2*z*wn * dy_dot
         act_dot += [Tdot, dp_dot, dp_ddot, dy_dot, dy_ddot]
@@ -320,6 +375,19 @@ INTEGRATORS = {'rk4': rk4_step, 'rk2': rk2_step}
 #  3. OCP BUILD & SOLVE  (one-shot, open-loop)
 # ══════════════════════════════════════════════════════════════════════
 
+class SolveFailure(RuntimeError):
+    """IPOPT gave up on the NLP (infeasible, or out of iterations).
+
+    Subclasses RuntimeError so existing `except RuntimeError` handling still
+    catches it, but carries the last iterate in *physical* units so a failed
+    run can still be inspected and plotted instead of just vanishing.
+    """
+
+    def __init__(self, msg, Xs, Us):
+        super().__init__(msg)
+        self.Xs, self.Us = Xs, Us
+
+
 def nlp_scales(lm, cfg):
     """Per-variable scale factors so every decision variable — and every
     dynamics-defect row — is O(1).
@@ -337,7 +405,12 @@ def nlp_scales(lm, cfg):
     sx[9:12]    = cfg.omega_max         # body rates        [rad/s]
     sx[IDX_T]   = lm.T_max_eng          # per-engine thrust [N]
     sx[IDX_DP]  = sx[IDX_DY]  = lm.gimbal_max                  # gimbal  [rad]
-    sx[IDX_DPD] = sx[IDX_DYD] = lm.gimbal_wn * lm.gimbal_max   # rate  [rad/s]
+    # gimbal rate scale is per-engine: a sluggish actuator's rate state is
+    # genuinely an order of magnitude smaller, and scaling it by the healthy
+    # bandwidth would leave that variable badly conditioned
+    for i in range(lm.n_eng):
+        rate = lm.wn_of(i) * lm.gimbal_max                     # rate  [rad/s]
+        sx[IDX_DPD[i]] = sx[IDX_DYD[i]] = rate
 
     su = np.concatenate([[lm.T_max_eng, lm.gimbal_max, lm.gimbal_max] * lm.n_eng,
                          np.full(lm.n_rcs, lm.F_rcs_per)])
@@ -347,9 +420,24 @@ def nlp_scales(lm, cfg):
 def solve_landing(lm, cfg, sc):
     nx, nu = N_RIGID + N_ACT, N_U_DPS + lm.n_rcs   # 22 states, 22 commands
 
+    # engine-out handling: a failed engine is pinned dead (zero thrust, zero
+    # gimbal) for the whole horizon, so hover trim must be carried by the
+    # survivors — each one now holds T_hover/n_live rather than T_hover/n_eng.
+    failed = tuple(sc.failed_eng)
+    n_live = lm.n_eng - len(failed)
+    if n_live < 1:
+        raise ValueError('every engine failed — nothing left to fly with')
+    # Trim thrust per engine. Each live engine must *deliver* T_hover/n_live, so
+    # a partially-efficient engine has to be commanded 1/eta higher — capped at
+    # its own limit, beyond which balanced hover simply is not reachable.
+    T_trim = lm.T_hover / n_live
+    live_T = (lambda i: 0.0 if i in failed
+              else min(lm.T_max_eng, T_trim / lm.eta_of(i)))
+
     # augment the 12-state scenario / weights with the actuator states:
     # every engine starts at its share of hover thrust, gimbals centred
-    act_x0     = np.array([lm.T_hover_eng, 0.0, 0.0, 0.0, 0.0] * lm.n_eng)
+    act_x0     = np.array([[live_T(i), 0.0, 0.0, 0.0, 0.0]
+                           for i in range(lm.n_eng)]).ravel()
     act_target = np.zeros(N_ACT)
     x0     = np.concatenate([sc.x0,       act_x0])
     x_targ = np.concatenate([sc.x_target, act_target])
@@ -413,8 +501,15 @@ def solve_landing(lm, cfg, sc):
             opti.subject_to(opti.bounded(-cfg.omega_max / Sx[j], Xv[j, k],
                                           cfg.omega_max / Sx[j]))
         # actuator-state limits, per engine: each engine's actual thrust and
-        # gimbal angles stay in that engine's own (half-nominal) range
+        # gimbal angles stay in that engine's own (half-nominal) range.
+        # A failed engine gets every actuator state pinned to zero (lb = ub),
+        # which detect_simple_bounds turns into a fixed variable.
         for i in range(lm.n_eng):
+            if i in failed:
+                for j in (IDX_T[i], IDX_DP[i], IDX_DPD[i],
+                          IDX_DY[i], IDX_DYD[i]):
+                    opti.subject_to(Xv[j, k] == 0.0)
+                continue
             jt = IDX_T[i]
             opti.subject_to(opti.bounded(lm.T_min_eng / Sx[jt], Xv[jt, k],
                                          lm.T_max_eng / Sx[jt]))
@@ -425,6 +520,10 @@ def solve_landing(lm, cfg, sc):
     # control bounds  (commanded values)
     for k in range(cfg.N):
         for i in range(lm.n_eng):
+            if i in failed:                      # dead engine: no command at all
+                for j in (IDX_U_T[i], IDX_U_DP[i], IDX_U_DY[i]):
+                    opti.subject_to(Uv[j, k] == 0.0)
+                continue
             jt = IDX_U_T[i]
             opti.subject_to(opti.bounded(lm.T_min_eng / Su[jt], Uv[jt, k],
                                          lm.T_max_eng / Su[jt]))
@@ -436,7 +535,8 @@ def solve_landing(lm, cfg, sc):
             opti.subject_to(opti.bounded(0.0, Uv[j, k], lm.F_rcs_per / Su[j]))
 
     # cost  (thruster commands are penalised toward 0 -> minimum-fuel RCS use)
-    u_ref = ca.vertcat(*([lm.T_hover_eng, 0, 0] * lm.n_eng), *([0] * lm.n_rcs))
+    u_ref = ca.vertcat(*[v for i in range(lm.n_eng)
+                           for v in (live_T(i), 0, 0)], *([0] * lm.n_rcs))
     cost = 0.0
     for k in range(cfg.N):
         dx = xs[k] - x_targ
@@ -454,10 +554,12 @@ def solve_landing(lm, cfg, sc):
     lam = np.linspace(0.0, 1.0, cfg.N + 1)
     X_init = x0[:, None] + (x_targ - x0)[:, None] * lam[None, :]
     # hold actuator warm-start at their initial values (don't ramp T -> 0)
-    X_init[IDX_T, :] = lm.T_hover_eng
+    for i in range(lm.n_eng):                       # dead engines warm-start at 0
+        X_init[IDX_T[i], :] = live_T(i)
     X_init[IDX_DP + IDX_DPD + IDX_DY + IDX_DYD, :] = 0.0
     U_init = np.zeros((nu, cfg.N))
-    U_init[IDX_U_T, :] = lm.T_hover_eng
+    for i in range(lm.n_eng):
+        U_init[IDX_U_T[i], :] = live_T(i)
     opti.set_initial(Xv, X_init / Sx[:, None])
     opti.set_initial(Uv, U_init / Su[:, None])
 
@@ -483,7 +585,7 @@ def solve_landing(lm, cfg, sc):
     # handles them in the barrier term instead of carrying 2.6k extra rows
     # through every MUMPS factorisation — the single biggest per-iteration win.
     opts = {'expand': True, 'detect_simple_bounds': True,
-            'ipopt.max_iter': 5000, 'ipopt.tol': 1e-6,
+            'ipopt.max_iter': cfg.max_iter, 'ipopt.tol': 1e-6,
             'ipopt.acceptable_tol': 1e-4, 'ipopt.acceptable_iter': 15,
             'ipopt.mu_strategy': 'adaptive',
             'ipopt.print_level': 3, 'print_time': True}
@@ -492,7 +594,15 @@ def solve_landing(lm, cfg, sc):
     print("=" * 60)
     print("  Apollo LM  —  One-Shot Motion-Planning OCP")
     print("=" * 60)
-    sol = opti.solve()
+    try:
+        sol = opti.solve()
+    except RuntimeError as exc:
+        # keep the last iterate (opti.debug holds it) so the caller can plot the
+        # divergence rather than losing the whole run to an exception
+        dbg = opti.debug
+        raise SolveFailure(str(exc),
+                           dbg.value(Xv) * Sx[:, None],
+                           dbg.value(Uv) * Su[:, None]) from exc
     print("\n>>> IPOPT converged <<<\n")
 
     # back to physical units
@@ -687,7 +797,18 @@ def plot_actuators(Xs, Us, cfg, lm, save_path='actuators.png'):
             ax.axhline(hi, ls=':', c='gray', alpha=0.7)
             ax.axhline(lo, ls=':', c='gray', alpha=0.7)
             ax.set_ylabel(lbl); ax.set_xlabel('Time [s]')
-            ax.grid(True, alpha=0.3); ax.legend(fontsize=9, title=f'$y_B$={y_i:+.2f} m',
+            # legend title carries the engine's geometry and, for the gimbal
+            # panels, its actuator parameters — so a degraded engine is labelled
+            tag = f'$y_B$={y_i:+.2f} m'
+            if lm.thrust_is_degraded(i) and lbl.find('thrust') >= 0:
+                tag += f'\n$\\eta$={lm.eta_of(i):.2f}  (delivers ' \
+                       f'{100 * lm.eta_of(i):.0f}%)'
+            if lbl.find('gimbal') >= 0:
+                tag += (f'\n$\\omega_n$={lm.wn_of(i):.2f} rad/s, '
+                        f'$\\zeta$={lm.zeta_of(i):.2f}')
+                if lm.gimbal_is_degraded(i):
+                    tag += '  (DEGRADED)'
+            ax.grid(True, alpha=0.3); ax.legend(fontsize=9, title=tag,
                                                 title_fontsize=8)
 
     # summary row: engines overlaid, plus the differential that drives roll
@@ -708,9 +829,11 @@ def plot_actuators(Xs, Us, cfg, lm, save_path='actuators.png'):
     ax.set_xlabel('Time [s]'); ax.grid(True, alpha=0.3)
 
     ax = axes[-1][2]
-    # roll moment produced purely by throttling asymmetry: sum_i y_i * Tz_i
+    # roll moment produced purely by throttling asymmetry: sum_i y_i * Tz_i,
+    # using each engine's *delivered* thrust (eta * T)
     L_diff = sum(lm.eng_pos(i)[1] *
-                 (-Xs[IDX_T[i]] * np.cos(Xs[IDX_DP[i]]) * np.cos(Xs[IDX_DY[i]]))
+                 (-lm.eta_of(i) * Xs[IDX_T[i]]
+                  * np.cos(Xs[IDX_DP[i]]) * np.cos(Xs[IDX_DY[i]]))
                  for i in range(lm.n_eng))
     ax.plot(t, L_diff, 'g-', lw=1.6)
     ax.axhline(0.0, ls=':', c='gray', alpha=0.7)

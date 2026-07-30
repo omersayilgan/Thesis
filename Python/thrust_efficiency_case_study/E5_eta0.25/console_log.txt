@@ -1,0 +1,112 @@
+######################################################################
+#  E5_eta0.25  —  eta = 0.25  (beyond throttle-only trim)
+######################################################################
+  engine 2 delivers 25% of its commanded thrust as force
+  max total delivered thrust = 28150 N (hover needs 12530 N, T/W = 2.25)
+
+  Static roll-trim budget at hover:
+    weak-engine command for balanced hover = 22520 N  (limit 22520 N — SATURATED)
+    delivered thrust  weak 5630 N  vs  strong 6900 N
+    residual roll moment  = 1906 N.m
+    gimbal + RCS can absorb = 5432 N.m (3292 + 2140)
+    -> TRIMMABLE  (deficit -3527 N.m)
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+Total number of variables............................:     3520
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2960
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 204
+
+                                   (scaled)                 (unscaled)
+Objective...............:   9.5040526779001884e+03    5.6255200604442048e+08
+Dual infeasibility......:   2.8820946837550919e-10    1.7059334590247670e-05
+Constraint violation....:   1.2262770909821086e-08    1.2262770909821086e-08
+Variable bound violation:   1.0000288819256298e-08    1.0000288819256298e-08
+Complementarity.........:   5.0728911905792723e-10    3.0026823423878002e-05
+Overall NLP error.......:   1.2262770909821086e-08    3.0026823423878002e-05
+
+
+Number of objective function evaluations             = 211
+Number of objective gradient evaluations             = 205
+Number of equality constraint evaluations            = 211
+Number of inequality constraint evaluations          = 211
+Number of equality constraint Jacobian evaluations   = 205
+Number of inequality constraint Jacobian evaluations = 205
+Number of Lagrangian Hessian evaluations             = 204
+Total seconds in IPOPT                               = 23.801
+
+EXIT: Optimal Solution Found.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  |  16.81ms ( 79.68us)  16.84ms ( 79.82us)       211
+       nlp_g  | 130.18ms (616.99us) 130.03ms (616.28us)       211
+  nlp_grad_f  |  75.59ms (183.47us)  75.55ms (183.38us)       412
+  nlp_hess_l  |   6.30 s ( 30.87ms)   6.30 s ( 30.90ms)       204
+   nlp_jac_g  | 927.95ms (  4.50ms) 929.18ms (  4.51ms)       206
+       total  |  23.79 s ( 23.79 s)  23.82 s ( 23.82 s)         1
+
+>>> IPOPT converged <<<
+
+Terminal state:
+  Position  (x,y)   = (-0.07, 0.14) m
+  Altitude  (-z_E)  = 1.00 m
+  Velocity  (u,v,w) = (-0.002, -0.161, 0.106) m/s
+  Euler (φ,θ,ψ)     = (5.95, -0.12, 25.04)°
+  Ang. rate (p,q,r) = (-0.494, 0.268, -0.374)°/s
+
+  Touchdown speed    = 0.193 m/s
+  Position error     = 1.01 m
+  Attitude error     = 5.95°
+
+  ⚠  Landing criteria not fully met
+
+Performance metrics:
+  peak_delivered_total_N       =     16848.4083
+  mean_delivered_total_N       =     14117.9940
+  peak_cmd_weak_N              =     22520.0002
+  mean_cmd_weak_N              =     22100.5961
+  mean_cmd_strong_N            =      8592.8450
+  dps_impulse_cmd_Ns           =   2486168.7266
+  dps_impulse_delivered_Ns     =   1143557.5158
+  wasted_impulse_Ns            =   1342611.2108
+  peak_tvc_roll_moment_Nm      =      8997.2691
+  mean_abs_tvc_roll_Nm         =      4600.6081
+  mean_abs_gimbal_dy_deg       =         5.7526
+  rcs_impulse_Ns               =    274533.1372
+  peak_roll_deg                =        23.6064
+  peak_p_degs                  =        10.0000
+  time_to_contact_s            =        74.0000
+  terminal_speed_ms            =         0.1930
+  terminal_pos_err_m           =         0.1556
+  terminal_att_err_deg         =         5.9491
+============================================================
+  DPS CUT-OFF  &  BALLISTIC TOUCHDOWN
+============================================================
+At engine cut-off (contact):
+  Altitude          = 1.00 m
+  Descent rate w    = 0.106 m/s   (speed 0.193 m/s)
+  Thrust at cut-off = 33024 N  ->  0 N   (E1 11456 N  +  E2 21568 N)
+
+After 1.06 s of engine-off free-fall:
+  Touchdown altitude = -0.000 m
+  Touchdown speed    = 1.813 m/s (vertical 1.813 m/s)
+  Horizontal drift   = (+0.07, -0.17) m during settle
+
+/home/omersayilgan/Desktop/ThesisGit/Python/apollo_full.py:708: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
+  fig, axes = plt.subplots(4, 3, figsize=(16, 14))
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E5_eta0.25/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E5_eta0.25/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E5_eta0.25/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E5_eta0.25/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E5_eta0.25/trajectory_with_axes.png
+
+=== E5_eta0.25 status: solved ===

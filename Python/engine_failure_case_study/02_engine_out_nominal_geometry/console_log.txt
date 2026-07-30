@@ -1,0 +1,92 @@
+######################################################################
+#  CASE 2: Engine 2 out — nominal geometry, y_eng = 1.5 m
+######################################################################
+  engines           : 2  (failed: (1,))
+  lateral spacing   : y_eng = 1.5 m
+  total thrust range: 4560 .. 45040 N
+  hover thrust      : 12530 N
+
+  Static roll-trim budget (engine-out):
+    moment to cancel        =   18795.6 N.m
+    gimbal can cancel       =    3292.5 N.m (at 6 deg)
+    RCS can cancel          =    2139.7 N.m
+    deficit                 =   13363.4 N.m (NOT TRIMMABLE)
+    critical spacing y_crit =     0.434 m
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+ Ipopt is released as open source code under the Eclipse Public License (EPL).
+         For more information visit https://github.com/coin-or/Ipopt
+******************************************************************************
+
+Total number of variables............................:     2880
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2480
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 400
+
+                                   (scaled)                 (unscaled)
+Objective...............:   1.4710054404756098e+05    8.7069915275831699e+09
+Dual infeasibility......:   1.5334467580782497e+04    9.0765863695720148e+08
+Constraint violation....:   2.6179951221812416e+00    2.6179951221812416e+00
+Variable bound violation:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   7.8590369839519718e-03    4.6518229335785514e+02
+Overall NLP error.......:   3.6291559421852448e+03    9.0765863695720148e+08
+
+
+Number of objective function evaluations             = 456
+Number of objective gradient evaluations             = 53
+Number of equality constraint evaluations            = 456
+Number of inequality constraint evaluations          = 456
+Number of equality constraint Jacobian evaluations   = 401
+Number of inequality constraint Jacobian evaluations = 401
+Number of Lagrangian Hessian evaluations             = 400
+Total seconds in IPOPT                               = 135.275
+
+EXIT: Maximum Number of Iterations Exceeded.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  | 411.90ms (903.28us)  40.30ms ( 88.37us)       456
+       nlp_g  |   3.44 s (  7.54ms) 316.45ms (693.98us)       456
+  nlp_grad_f  | 988.80ms (  2.17ms)  92.51ms (202.86us)       456
+  nlp_hess_l  |  52.18 s (130.77ms)  11.36 s ( 28.47ms)       399
+   nlp_jac_g  |  19.65 s ( 48.88ms)   1.84 s (  4.58ms)       402
+       total  |   1.28ks (  1.28ks) 135.29 s (135.29 s)         1
+
+>>> SOLVER FAILED <<<
+Error in Opti::solve [OptiNode] at .../casadi/core/optistack.cpp:217:
+.../casadi/core/optistack_internal.cpp:1338: Assertion "return_success(accept_limit)" failed:
+Solver failed. You may use opti.debug.value to investigate the latest values of variables. return_status is 'Maximum_Iterations_Exceeded'
+
+Plotting the final (non-converged) iterate for diagnosis — this is NOT a flyable trajectory.
+
+Terminal state:
+  Position  (x,y)   = (-709.69, 682.04) m
+  Altitude  (-z_E)  = 568.29 m
+  Velocity  (u,v,w) = (-29.843, -1.860, 38.817) m/s
+  Euler (φ,θ,ψ)     = (44.76, -22.82, -44.34)°
+  Ang. rate (p,q,r) = (9.979, 9.916, -9.937)°/s
+
+  Touchdown speed    = 48.998 m/s
+  Position error     = 1136.57 m
+  Attitude error     = 50.24°
+
+  ⚠  Landing criteria not fully met
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/02_engine_out_nominal_geometry/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/02_engine_out_nominal_geometry/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/02_engine_out_nominal_geometry/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/02_engine_out_nominal_geometry/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/02_engine_out_nominal_geometry/trajectory_with_axes.png
+
+=== case 2 status: FAILED ===

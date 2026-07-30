@@ -1,0 +1,102 @@
+######################################################################
+#  G4 — engine 2 gimbal sluggish + underdamped (wn = 1.0, zeta = 0.25)
+######################################################################
+  engine 1 gimbal: wn = 4.00 rad/s (0.637 Hz), zeta = 0.70, settle ~1.4 s, overshoot 5%
+  engine 2 gimbal: wn = 1.00 rad/s (0.159 Hz), zeta = 0.25, settle ~16.0 s, overshoot 44%  <-- DEGRADED
+  grid: N = 80, dt = 1.0 s (horizon 80 s)
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+Total number of variables............................:     3520
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2960
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 284
+
+                                   (scaled)                 (unscaled)
+Objective...............:   5.7540014602173114e+03    3.4058366193135780e+08
+Dual infeasibility......:   4.0206223768328735e-11    2.3798365395152037e-06
+Constraint violation....:   8.4748797591385478e-10    8.4748797591385478e-10
+Variable bound violation:   5.9999551105249793e-08    5.9999551105249793e-08
+Complementarity.........:   2.5322580618346853e-11    1.4988625387354139e-06
+Overall NLP error.......:   8.4748797591385478e-10    2.3798365395152037e-06
+
+
+Number of objective function evaluations             = 285
+Number of objective gradient evaluations             = 285
+Number of equality constraint evaluations            = 285
+Number of inequality constraint evaluations          = 285
+Number of equality constraint Jacobian evaluations   = 285
+Number of inequality constraint Jacobian evaluations = 285
+Number of Lagrangian Hessian evaluations             = 284
+Total seconds in IPOPT                               = 23.865
+
+EXIT: Optimal Solution Found.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  |  16.39ms ( 57.50us)  16.44ms ( 57.68us)       285
+       nlp_g  | 132.49ms (464.89us) 133.41ms (468.09us)       285
+  nlp_grad_f  |  61.62ms (107.73us)  62.12ms (108.60us)       572
+  nlp_hess_l  |   6.06 s ( 21.35ms)   6.10 s ( 21.48ms)       284
+   nlp_jac_g  | 918.28ms (  3.21ms) 924.96ms (  3.23ms)       286
+       total  |  23.73 s ( 23.73 s)  23.87 s ( 23.87 s)         1
+
+>>> IPOPT converged <<<
+
+Terminal state:
+  Position  (x,y)   = (0.00, -0.00) m
+  Altitude  (-z_E)  = 1.00 m
+  Velocity  (u,v,w) = (-0.000, 0.000, 0.000) m/s
+  Euler (φ,θ,ψ)     = (0.00, 0.00, -0.00)°
+  Ang. rate (p,q,r) = (0.000, -0.000, 0.000)°/s
+
+  Touchdown speed    = 0.000 m/s
+  Position error     = 1.00 m
+  Attitude error     = 0.00°
+
+  ★  LANDING SUCCESS  ★
+
+Performance metrics:
+  gimbal_rms_err_E1_deg      =       0.5645
+  gimbal_max_err_E1_deg      =       2.2975
+  gimbal_rms_cmd_E1_deg      =       1.5471
+  gimbal_rms_err_E2_deg      =       3.5165
+  gimbal_max_err_E2_deg      =      12.0000
+  gimbal_rms_cmd_E2_deg      =       2.6973
+  peak_roll_deg              =      45.0000
+  peak_pitch_deg             =      36.2308
+  peak_p_degs                =      10.0000
+  peak_q_degs                =      10.0000
+  rcs_impulse_Ns             =   98510.3021
+  dps_impulse_Ns             = 1688868.3257
+  peak_diff_thrust_N         =    5260.3556
+  terminal_speed_ms          =       0.0000
+  terminal_pos_err_m         =       0.0000
+  terminal_att_err_deg       =       0.0000
+============================================================
+  DPS CUT-OFF  &  BALLISTIC TOUCHDOWN
+============================================================
+At engine cut-off (contact):
+  Altitude          = 1.00 m
+  Descent rate w    = 0.000 m/s   (speed 0.000 m/s)
+  Thrust at cut-off = 12531 N  ->  0 N   (E1 6263 N  +  E2 6268 N)
+
+After 1.11 s of engine-off free-fall:
+  Touchdown altitude = -0.000 m
+  Touchdown speed    = 1.803 m/s (vertical 1.803 m/s)
+  Horizontal drift   = (-0.00, +0.00) m during settle
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/gimbal_degradation_case_study/G4_underdamped_wn1.0_zeta0.25/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/gimbal_degradation_case_study/G4_underdamped_wn1.0_zeta0.25/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/gimbal_degradation_case_study/G4_underdamped_wn1.0_zeta0.25/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/gimbal_degradation_case_study/G4_underdamped_wn1.0_zeta0.25/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/gimbal_degradation_case_study/G4_underdamped_wn1.0_zeta0.25/trajectory_with_axes.png
+
+=== G4_underdamped_wn1.0_zeta0.25 status: solved ===

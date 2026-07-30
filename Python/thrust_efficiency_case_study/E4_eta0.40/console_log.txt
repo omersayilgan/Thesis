@@ -1,0 +1,110 @@
+######################################################################
+#  E4_eta0.40  —  eta = 0.40  (severe)
+######################################################################
+  engine 2 delivers 40% of its commanded thrust as force
+  max total delivered thrust = 31528 N (hover needs 12530 N, T/W = 2.52)
+
+  Static roll-trim budget at hover:
+    weak-engine command for balanced hover = 15663 N  (limit 22520 N)
+    delivered thrust  weak 6265 N  vs  strong 6265 N
+    residual roll moment  = 0 N.m
+    gimbal + RCS can absorb = 5432 N.m (3292 + 2140)
+    -> TRIMMABLE  (deficit -5432 N.m)
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+Total number of variables............................:     3520
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2960
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 192
+
+                                   (scaled)                 (unscaled)
+Objective...............:   6.3141815782788499e+03    3.7374114325450879e+08
+Dual infeasibility......:   8.0604234571548115e-12    4.7710250974658612e-07
+Constraint violation....:   1.7356490560016433e-07    1.7356490560016433e-07
+Variable bound violation:   9.9999897251734637e-09    9.9999897251734637e-09
+Complementarity.........:   1.2957631997053164e-11    7.6697195612957449e-07
+Overall NLP error.......:   1.7356490560016433e-07    7.6697195612957449e-07
+
+
+Number of objective function evaluations             = 193
+Number of objective gradient evaluations             = 193
+Number of equality constraint evaluations            = 193
+Number of inequality constraint evaluations          = 193
+Number of equality constraint Jacobian evaluations   = 193
+Number of inequality constraint Jacobian evaluations = 193
+Number of Lagrangian Hessian evaluations             = 192
+Total seconds in IPOPT                               = 21.196
+
+EXIT: Optimal Solution Found.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  |  18.50ms ( 95.85us)  18.52ms ( 95.95us)       193
+       nlp_g  | 125.71ms (651.33us) 125.66ms (651.09us)       193
+  nlp_grad_f  |  69.41ms (178.88us)  69.33ms (178.69us)       388
+  nlp_hess_l  |   5.63 s ( 29.31ms)   5.64 s ( 29.37ms)       192
+   nlp_jac_g  | 845.62ms (  4.36ms) 847.23ms (  4.37ms)       194
+       total  |  21.17 s ( 21.17 s)  21.21 s ( 21.21 s)         1
+
+>>> IPOPT converged <<<
+
+Terminal state:
+  Position  (x,y)   = (0.00, -0.00) m
+  Altitude  (-z_E)  = 1.00 m
+  Velocity  (u,v,w) = (-0.000, 0.000, 0.000) m/s
+  Euler (φ,θ,ψ)     = (0.00, -0.00, 0.00)°
+  Ang. rate (p,q,r) = (0.000, 0.000, -0.000)°/s
+
+  Touchdown speed    = 0.000 m/s
+  Position error     = 1.00 m
+  Attitude error     = 0.00°
+
+  ★  LANDING SUCCESS  ★
+
+Performance metrics:
+  peak_delivered_total_N       =     22866.6888
+  mean_delivered_total_N       =     17042.0710
+  peak_cmd_weak_N              =     22519.9992
+  mean_cmd_weak_N              =     18696.6283
+  mean_cmd_strong_N            =      9563.4197
+  dps_impulse_cmd_Ns           =   2289063.8870
+  dps_impulse_delivered_Ns     =   1380407.7520
+  wasted_impulse_Ns            =    908656.1350
+  peak_tvc_roll_moment_Nm      =      7794.8604
+  mean_abs_tvc_roll_Nm         =      3444.5972
+  mean_abs_gimbal_dy_deg       =         3.9538
+  rcs_impulse_Ns               =    147379.9209
+  peak_roll_deg                =        45.0000
+  peak_p_degs                  =        10.0000
+  time_to_contact_s            =        41.0000
+  terminal_speed_ms            =         0.0000
+  terminal_pos_err_m           =         0.0000
+  terminal_att_err_deg         =         0.0001
+============================================================
+  DPS CUT-OFF  &  BALLISTIC TOUCHDOWN
+============================================================
+At engine cut-off (contact):
+  Altitude          = 1.00 m
+  Descent rate w    = 0.000 m/s   (speed 0.000 m/s)
+  Thrust at cut-off = 21955 N  ->  0 N   (E1 6252 N  +  E2 15703 N)
+
+After 1.11 s of engine-off free-fall:
+  Touchdown altitude = -0.000 m
+  Touchdown speed    = 1.803 m/s (vertical 1.803 m/s)
+  Horizontal drift   = (-0.00, +0.00) m during settle
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E4_eta0.40/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E4_eta0.40/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E4_eta0.40/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E4_eta0.40/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E4_eta0.40/trajectory_with_axes.png
+
+=== E4_eta0.40 status: solved ===

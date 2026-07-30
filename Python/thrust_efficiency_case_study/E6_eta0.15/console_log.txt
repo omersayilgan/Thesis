@@ -1,0 +1,102 @@
+######################################################################
+#  E6_eta0.15  —  eta = 0.15  (beyond all authority)
+######################################################################
+  engine 2 delivers 15% of its commanded thrust as force
+  max total delivered thrust = 25898 N (hover needs 12530 N, T/W = 2.07)
+
+  Static roll-trim budget at hover:
+    weak-engine command for balanced hover = 22520 N  (limit 22520 N — SATURATED)
+    delivered thrust  weak 3378 N  vs  strong 9152 N
+    residual roll moment  = 8662 N.m
+    gimbal + RCS can absorb = 5432 N.m (3292 + 2140)
+    -> NOT TRIMMABLE  (deficit +3229 N.m)
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+Total number of variables............................:     3520
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2960
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 400
+
+                                   (scaled)                 (unscaled)
+Objective...............:   2.1124206067321255e+04    1.2503576002792954e+09
+Dual infeasibility......:   3.4344665593380463e+10    2.0328865149713842e+15
+Constraint violation....:   3.9292177051490296e-01    3.9292177051490296e-01
+Variable bound violation:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   9.6564945196786546e+04    5.7157515299066925e+09
+Overall NLP error.......:   2.0438522287391213e+04    2.0328865149713842e+15
+
+
+Number of objective function evaluations             = 429
+Number of objective gradient evaluations             = 401
+Number of equality constraint evaluations            = 429
+Number of inequality constraint evaluations          = 429
+Number of equality constraint Jacobian evaluations   = 404
+Number of inequality constraint Jacobian evaluations = 404
+Number of Lagrangian Hessian evaluations             = 400
+Total seconds in IPOPT                               = 179.693
+
+EXIT: Maximum Number of Iterations Exceeded.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  |  37.13ms ( 86.55us)  37.17ms ( 86.64us)       429
+       nlp_g  | 265.16ms (618.10us) 267.11ms (622.64us)       429
+  nlp_grad_f  | 133.85ms (165.86us) 133.74ms (165.72us)       807
+  nlp_hess_l  |  10.81 s ( 27.23ms)  10.84 s ( 27.31ms)       397
+   nlp_jac_g  |   1.71 s (  4.22ms)   1.72 s (  4.24ms)       405
+       total  | 179.28 s (179.28 s) 179.70 s (179.70 s)         1
+
+>>> SOLVER FAILED <<<
+Error in Opti::solve [OptiNode] at .../casadi/core/optistack.cpp:217:
+.../casadi/core/optistack_internal.cpp:1338: Assertion "return_success(accept_limit)" failed:
+Solver failed. You may use opti.debug.value to investigate the latest values of variables. return_status is 'Maximum_Iterations_Exceeded'
+
+Plotting the final non-converged iterate for diagnosis — NOT a flyable trajectory.
+
+Terminal state:
+  Position  (x,y)   = (-2.73, -1.17) m
+  Altitude  (-z_E)  = 5.85 m
+  Velocity  (u,v,w) = (18.364, 12.204, 12.870) m/s
+  Euler (φ,θ,ψ)     = (24.54, -33.08, -13.34)°
+  Ang. rate (p,q,r) = (-0.535, -1.768, 6.396)°/s
+
+  Touchdown speed    = 25.530 m/s
+  Position error     = 6.56 m
+  Attitude error     = 41.19°
+
+  ⚠  Landing criteria not fully met
+
+Performance metrics:
+  peak_delivered_total_N       =     11880.6726
+  mean_delivered_total_N       =      9093.5897
+  peak_cmd_weak_N              =     22520.0000
+  mean_cmd_weak_N              =     22516.8250
+  mean_cmd_strong_N            =      5716.0659
+  dps_impulse_cmd_Ns           =   2286864.1651
+  dps_impulse_delivered_Ns     =    736580.7628
+  wasted_impulse_Ns            =   1550283.4023
+  peak_tvc_roll_moment_Nm      =      7578.7593
+  mean_abs_tvc_roll_Nm         =      3486.6729
+  mean_abs_gimbal_dy_deg       =         5.6915
+  rcs_impulse_Ns               =    284626.8066
+  peak_roll_deg                =        34.1593
+  peak_p_degs                  =         9.9999
+  time_to_contact_s            =         0.0000
+  terminal_speed_ms            =        25.5303
+  terminal_pos_err_m           =         2.9732
+  terminal_att_err_deg         =        41.1885
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E6_eta0.15/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E6_eta0.15/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E6_eta0.15/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E6_eta0.15/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/thrust_efficiency_case_study/E6_eta0.15/trajectory_with_axes.png
+
+=== E6_eta0.15 status: FAILED ===

@@ -1,0 +1,93 @@
+######################################################################
+#  CASE 3: Engine 2 out — re-spaced geometry, y_eng = 0.2 m
+######################################################################
+  engines           : 2  (failed: (1,))
+  lateral spacing   : y_eng = 0.2 m
+  total thrust range: 4560 .. 45040 N
+  hover thrust      : 12530 N
+
+  Static roll-trim budget (engine-out):
+    moment to cancel        =    2506.1 N.m
+    gimbal can cancel       =    3292.5 N.m (at 6 deg)
+    RCS can cancel          =    2139.7 N.m
+    deficit                 =   -2926.1 N.m (TRIMMABLE)
+    critical spacing y_crit =     0.434 m
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+Total number of variables............................:     2880
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2480
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 190
+
+                                   (scaled)                 (unscaled)
+Objective...............:   9.0044290971049359e+03    5.3297891157946396e+08
+Dual infeasibility......:   1.5611165958572848e-12    9.2403662146239566e-08
+Constraint violation....:   3.2942431248128567e-10    3.2942431248128567e-10
+Variable bound violation:   9.9999867830824485e-09    9.9999867830824485e-09
+Complementarity.........:   3.8618012442707336e-11    2.2858291199931792e-06
+Overall NLP error.......:   3.2942431248128567e-10    2.2858291199931792e-06
+
+
+Number of objective function evaluations             = 247
+Number of objective gradient evaluations             = 191
+Number of equality constraint evaluations            = 247
+Number of inequality constraint evaluations          = 247
+Number of equality constraint Jacobian evaluations   = 192
+Number of inequality constraint Jacobian evaluations = 192
+Number of Lagrangian Hessian evaluations             = 190
+Total seconds in IPOPT                               = 75.906
+
+EXIT: Optimal Solution Found.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  | 395.54ms (  1.60ms)  27.17ms (110.01us)       247
+       nlp_g  |   1.98 s (  8.01ms) 198.95ms (805.48us)       247
+  nlp_grad_f  | 894.01ms (  2.32ms)  82.39ms (214.01us)       385
+  nlp_hess_l  |  25.62 s (135.56ms)   6.27 s ( 33.16ms)       189
+   nlp_jac_g  |  10.59 s ( 54.86ms)   1.09 s (  5.63ms)       193
+       total  | 709.89 s (709.89 s)  75.91 s ( 75.91 s)         1
+
+>>> IPOPT converged <<<
+
+Terminal state:
+  Position  (x,y)   = (-0.00, -0.00) m
+  Altitude  (-z_E)  = 1.00 m
+  Velocity  (u,v,w) = (0.000, 0.001, 0.001) m/s
+  Euler (φ,θ,ψ)     = (-0.05, 0.00, 0.02)°
+  Ang. rate (p,q,r) = (0.001, -0.000, 0.000)°/s
+
+  Touchdown speed    = 0.001 m/s
+  Position error     = 1.00 m
+  Attitude error     = 0.05°
+
+  ★  LANDING SUCCESS  ★
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/03_engine_out_survivable_geometry/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/03_engine_out_survivable_geometry/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/03_engine_out_survivable_geometry/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/03_engine_out_survivable_geometry/thrusters.png
+============================================================
+  DPS CUT-OFF  &  BALLISTIC TOUCHDOWN
+============================================================
+At engine cut-off (contact):
+  Altitude          = 1.00 m
+  Descent rate w    = 0.001 m/s   (speed 0.001 m/s)
+  Thrust at cut-off = 12559 N  ->  0 N   (E1 12559 N  +  E2 0 N)
+
+After 1.11 s of engine-off free-fall:
+  Touchdown altitude = -0.000 m
+  Touchdown speed    = 1.803 m/s (vertical 1.803 m/s)
+  Horizontal drift   = (+0.00, +0.00) m during settle
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/03_engine_out_survivable_geometry/trajectory_with_axes.png
+
+=== case 3 status: solved ===

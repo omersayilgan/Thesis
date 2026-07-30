@@ -1,0 +1,93 @@
+######################################################################
+#  CASE 1: Nominal — 2 engines, y_eng = 1.5 m
+######################################################################
+  engines           : 2  (failed: none)
+  lateral spacing   : y_eng = 1.5 m
+  total thrust range: 4560 .. 45040 N
+  hover thrust      : 12530 N
+
+============================================================
+  Apollo LM  —  One-Shot Motion-Planning OCP
+============================================================
+
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+ Ipopt is released as open source code under the Eclipse Public License (EPL).
+         For more information visit https://github.com/coin-or/Ipopt
+******************************************************************************
+
+Total number of variables............................:     3520
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:     2960
+                     variables with only upper bounds:       80
+Total number of equality constraints.................:     1760
+Total number of inequality constraints...............:       81
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:       81
+
+
+Number of Iterations....: 173
+
+                                   (scaled)                 (unscaled)
+Objective...............:   4.8445779185783194e+03    2.8675420043408966e+08
+Dual infeasibility......:   9.7130509818413140e-07    5.7492277240342365e-02
+Constraint violation....:   1.1523353642990064e-07    1.1523353642990064e-07
+Variable bound violation:   5.9999234025553960e-08    5.9999234025553960e-08
+Complementarity.........:   1.0780762610759620e-09    6.3812142450281990e-05
+Overall NLP error.......:   9.7130509818413140e-07    5.7492277240342365e-02
+
+
+Number of objective function evaluations             = 175
+Number of objective gradient evaluations             = 174
+Number of equality constraint evaluations            = 175
+Number of inequality constraint evaluations          = 175
+Number of equality constraint Jacobian evaluations   = 174
+Number of inequality constraint Jacobian evaluations = 174
+Number of Lagrangian Hessian evaluations             = 173
+Total seconds in IPOPT                               = 40.362
+
+EXIT: Optimal Solution Found.
+      solver  :   t_proc      (avg)   t_wall      (avg)    n_eval
+       nlp_f  | 163.45ms (934.00us)  14.31ms ( 81.77us)       175
+       nlp_g  |   1.48 s (  8.45ms) 108.63ms (620.76us)       175
+  nlp_grad_f  | 542.58ms (  1.55ms)  59.93ms (171.23us)       350
+  nlp_hess_l  |  22.24 s (128.55ms)   4.69 s ( 27.09ms)       173
+   nlp_jac_g  |   8.83 s ( 50.45ms) 842.22ms (  4.81ms)       175
+       total  | 381.75 s (381.75 s)  40.37 s ( 40.37 s)         1
+
+>>> IPOPT converged <<<
+
+Terminal state:
+  Position  (x,y)   = (-0.00, -0.00) m
+  Altitude  (-z_E)  = 1.00 m
+  Velocity  (u,v,w) = (0.000, 0.000, 0.000) m/s
+  Euler (φ,θ,ψ)     = (0.00, 0.00, -0.00)°
+  Ang. rate (p,q,r) = (0.000, -0.000, 0.000)°/s
+
+  Touchdown speed    = 0.000 m/s
+  Position error     = 1.00 m
+  Attitude error     = 0.00°
+
+  ★  LANDING SUCCESS  ★
+
+============================================================
+  DPS CUT-OFF  &  BALLISTIC TOUCHDOWN
+============================================================
+At engine cut-off (contact):
+  Altitude          = 1.00 m
+  Descent rate w    = 0.000 m/s   (speed 0.000 m/s)
+  Thrust at cut-off = 12531 N  ->  0 N   (E1 6252 N  +  E2 6280 N)
+
+After 1.11 s of engine-off free-fall:
+  Touchdown altitude = -0.000 m
+  Touchdown speed    = 1.803 m/s (vertical 1.803 m/s)
+  Horizontal drift   = (+0.00, +0.00) m during settle
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/01_nominal_2_engines/states.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/01_nominal_2_engines/controls.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/01_nominal_2_engines/actuators.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/01_nominal_2_engines/thrusters.png
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/engine_failure_case_study/01_nominal_2_engines/trajectory_with_axes.png
+
+=== case 1 status: solved ===
