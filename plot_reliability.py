@@ -1,33 +1,57 @@
 #!/usr/bin/env python3
 """
-Plot thrust-to-weight ratio against a redundancy-weighted reliability score.
+Probability of mission success against thrust-to-weight ratio.
 
-    x  =  T/W  (thrust used for T/W  /  vehicle weight, payload excluded)
-    y  =  reliability score
+    x = T/W          thrust used for T/W / vehicle weight (payload excluded)
+    y = P(success)   probability the vehicle keeps the actuation it needs
 
-The score follows the definition supplied by the user:
+THE WHOLE IDEA
+--------------
+A vehicle has up to two actuation systems: RCS (attitude thrusters) and TVC
+(the gimballed main engine(s)). Each is scored on the probability that the
+failures it suffers are ones it can absorb, with a per-unit failure
+probability p.
 
-    P_rcs_ensemble  = p_rcs ** R_rcs        R_rcs  = WORST-case RCS redundancy
-    P_eng_ensemble  = p_eng ** R_eng        R_eng  = propulsive redundancy,
-                                                     or engine-out for boosters
-    score           = 1/P_rcs_ensemble + 1/P_eng_ensemble
-                    = p_rcs**(-R_rcs) + p_eng**(-R_eng)
+TVC is a counting question - the engines are interchangeable, so only HOW MANY
+fail matters:
 
-p_rcs and p_eng are per-unit failure probabilities (defaults 1% and 2%, the
-example values given). Both are CLI-settable - they are engineering estimates,
-not published figures, so the sensitivity of the result to them matters.
+    P_success(TVC) = P(fewer than n of N engines fail)
+                   = sum_{k=0}^{n-1} C(N,k) p^k (1-p)^(N-k)
 
-The script does NOT read cached formula results from the workbook (openpyxl
-writes no cached values, so those cells would come back empty). It reads the
-literal input cells and re-derives T/W and the redundancy levels using the same
-formulas the workbook uses. That makes it independent of whether Excel has ever
-opened the file, and it double-checks the sheet's own arithmetic.
+    n = N           off the pad one working engine still gives control, so the
+                    system is lost only when every engine has failed
+    n = R + 1       for a booster, which cannot coast on one engine: R is what
+                    it can shed and still hold T/W >= threshold
+
+RCS is NOT a counting question. Thrusters push only and sit in fixed places,
+so WHICH ones fail decides whether the survivors can still torque about every
+axis - only 24 of the 120 ways to lose 2 of the Apollo LM's 16 thrusters cost
+it a control DOF. rcs_dof.py counts the fatal sets on the real geometry:
+
+    P_success(RCS) = 1 - sum_k counts[k] * p^k * (1-p)^(N-k)
+
+where counts[k] is how many of the C(N,k) k-thruster losses are fatal. Sets
+larger than --depth are all counted as fatal, which is conservative and worth
+~1e-8 at these p. Without geometry it falls back to assuming the worst case,
+that losing one whole cluster of floor(N/k) costs the DOF.
+
+The vehicle then succeeds only if BOTH systems it has survive, and the weaker
+one governs:
+
+    P(success) = min over the systems the vehicle HAS
+
+A vehicle with only one system is judged on that system alone - no phantom
+term is invented for the system it does not have. Boosters have no vehicle-
+level RCS; Crew Dragon and Europa Clipper have no separable engine system.
+
+The workbook stores formulas without cached values, so T/W and the booster
+engine-out budget are re-derived here from the literal input cells.
 
 Usage
     python3 plot_reliability.py
     python3 plot_reliability.py --p-rcs 0.005 --p-eng 0.03
-    python3 plot_reliability.py --failures-to-lose R+1
-    python3 plot_reliability.py --engine-out-threshold 1.0
+    python3 plot_reliability.py --yscale linear
+    python3 plot_reliability.py --rcs-dof count
 """
 
 import argparse
@@ -40,33 +64,50 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from openpyxl import load_workbook
+import pandas as pd
 
 G0 = 9.80665
-
 HERE = Path(__file__).resolve().parent
 DEFAULT_XLSX = HERE / "ExcelSheets" / "spacecraft_values.xlsx"
 
-# --- Data-sheet column indices (1-based), mirroring the workbook layout -------
-C_CATEGORY, C_NAME = 1, 2
-C_MAIN_F, C_MAIN_N = 6, 7
-C_RCS_F, C_RCS_N = 10, 11
-C_AUX_F, C_AUX_N = 14, 15
-C_MASS, C_PAYLOAD = 20, 21
-C_UNITS, C_GROUPS = 37, 38
-C_PROP_UNITS = 45
-C_MAIN_DESIG = 5          # main-engine designation, used to classify boosters
-C_ATT_TIER = 36           # attitude-tier description, used to classify the RCS
-C_PROP_WHICH = 46         # propulsive-tier description
+# ---------------------------------------------------------------------------
+# Per-unit failure probabilities. Nobody publishes these; they are engineering
+# estimates ordered by mechanical simplicity and accumulated flight time.
+# ---------------------------------------------------------------------------
+P_UNIT = {
+    "cold_gas": 0.003,   # no combustion, no ignition - a stuck valve is all
+    "monoprop": 0.005,   # catalytic, no ignition system, decades of flight time
+    "biprop":   0.010,   # two feed systems, a mixture ratio, real combustion
+    "solid":    0.015,   # trivial, but cannot be shut down, throttled or checked
+}
 
-# --- Palette: validated light-mode categorical slots -------------------------
-# node scripts/validate_palette.js "#2a78d6,#1baf7a,#eda100,#e87ba4,#4a3aa7" \
-#      --mode light --pairs all   ->  ALL CHECKS PASS
-# Two WARNs (CVD 6.1 in the 6-8 band; three slots under 3:1 contrast) are
-# discharged by secondary encoding: a distinct marker shape per category and a
-# visible direct label on every point. Committed to light mode: this is a print
-# figure for a thesis, not a themed web page.
+# Word-boundary patterns: a bare "ion" would match "correction".
+TECH_PATTERNS = [
+    ("cold_gas", r"cold[- ]gas|\bnitrogen\b|\bgn2\b"),
+    ("solid",    r"\bsolid\b|\bsrb\b|\bp120c\b|\bp80\b|\bbooster\b"),
+    ("monoprop", r"\bhydrazine\b|\bmonopropellant\b|\bmonoprop\b|\bmonarc\b"),
+]
+
+COL = {  # workbook column -> short name
+    "Category": "category",
+    "Spacecraft": "name",
+    "Main / TVC engine designation": "eng_desig",
+    "Main engine thrust, each [N]": "main_f",
+    "No. of main engines": "main_n",
+    "RCS thrust, each [N]": "rcs_f",
+    "No. of RCS thrusters": "rcs_n",
+    "Aux thrust, each [N]": "aux_f",
+    "No. of aux units": "aux_n",
+    "Reference mass, as published [kg]": "mass",
+    "Payload mass excluded [kg]": "payload",
+    "REDUNDANCY: actuator tier assessed": "rcs_desig",
+    "Units installed, N": "units",
+    "Actuator groups/clusters, k": "groups",
+    "Propulsive units counted (main-thrust capable)": "prop_units",
+    "Which units are counted as propulsive": "prop_desig",
+    "Control DOF required, m": "dof",
+}
+
 CATEGORY_STYLE = {
     "Boosters":          ("#2a78d6", "o"),
     "LEO Satellites":    ("#1baf7a", "s"),
@@ -74,22 +115,14 @@ CATEGORY_STYLE = {
     "Crewed Vehicles":   ("#e87ba4", "D"),
     "Deep Space Probes": ("#4a3aa7", "v"),
 }
-CATEGORY_ORDER = list(CATEGORY_STYLE)
+SURFACE, INK, INK2, INK3 = "#fcfcfb", "#0b0b0b", "#52514e", "#8a8981"
 
-SURFACE = "#fcfcfb"
-INK_PRIMARY = "#0b0b0b"
-INK_SECONDARY = "#52514e"
-INK_MUTED = "#8a8981"
-
-# Shorter labels so 20 annotations fit without collisions
 SHORT = {
     "Solar Dynamics Observatory (SDO)": "SDO",
     "Meteosat Second Generation (MSG)": "MSG",
-    "Artemis (ESA telecom satellite)": "Artemis",
     "Orion (CM + European Service Module)": "Orion",
     "Apollo Command & Service Module": "Apollo CSM",
     "Apollo Lunar Module": "Apollo LM",
-    "Space Shuttle Orbiter": "Shuttle Orbiter",
     "Crew Dragon (Dragon 2)": "Crew Dragon",
     "Cassini (Cassini-Huygens)": "Cassini",
     "GRACE-FO (per satellite)": "GRACE-FO",
@@ -98,408 +131,472 @@ SHORT = {
 }
 
 
-def num(v):
-    """Return a float for a numeric cell, else None ('n/d', 'n/a', blank, text)."""
-    if isinstance(v, (int, float)) and not isinstance(v, bool):
-        return float(v)
-    return None
+# --- the maths --------------------------------------------------------------
+
+def p_success(N, n, p):
+    """P(fewer than n of N independent units fail), each failing with prob p."""
+    if N is None or n is None:
+        return None
+    if n <= 0:
+        return 0.0                                   # already broken
+    if n > N:
+        return 1.0                                   # cannot lose that many
+    return sum(math.comb(N, k) * p**k * (1 - p)**(N - k) for k in range(n))
 
 
-def product(a, b):
-    """thrust_each * count, or None if either is undisclosed."""
-    a, b = num(a), num(b)
-    return None if a is None or b is None else a * b
-
-
-def read_rows(xlsx_path):
-    wb = load_workbook(xlsx_path, data_only=False)
-    if "Data" not in wb.sheetnames:
-        sys.exit(f"error: no 'Data' sheet in {xlsx_path}")
-    ws = wb["Data"]
-    out = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or not row[C_NAME - 1]:
-            continue
-        g = lambda c: row[c - 1]
-        out.append({
-            "category": g(C_CATEGORY),
-            "name": g(C_NAME),
-            "main_f": num(g(C_MAIN_F)), "main_n": num(g(C_MAIN_N)),
-            "main_total": product(g(C_MAIN_F), g(C_MAIN_N)),
-            "rcs_total": product(g(C_RCS_F), g(C_RCS_N)),
-            "aux_total": product(g(C_AUX_F), g(C_AUX_N)),
-            "mass": num(g(C_MASS)), "payload": num(g(C_PAYLOAD)),
-            "units": num(g(C_UNITS)), "groups": num(g(C_GROUPS)),
-            "prop_units": num(g(C_PROP_UNITS)),
-            "main_desig": g(C_MAIN_DESIG), "att_tier": g(C_ATT_TIER),
-            "prop_which": g(C_PROP_WHICH),
-        })
-    return out
-
-
-def derive(r, eo_threshold):
-    """Re-derive T/W and both redundancy levels exactly as the workbook does."""
-    is_booster = r["category"] == "Boosters"
-
-    # Boosters neglect the RCS tier; everything else sums all disclosed tiers.
-    tiers = [r["main_total"], r["aux_total"]] if is_booster else \
-            [r["main_total"], r["rcs_total"], r["aux_total"]]
-    thrust = sum(t for t in tiers if t is not None)
-
-    payload = r["payload"] if r["payload"] is not None else 0.0
-    vehicle_mass = None if r["mass"] is None else r["mass"] - payload
-    tw = None
-    if vehicle_mass and vehicle_mass > 0 and thrust > 0:
-        tw = thrust / (vehicle_mass * G0)
-
-    # WORST-case RCS redundancy: floor(N/k) - 1
-    r_rcs = None
-    if r["units"] and r["groups"]:
-        r_rcs = max(0, math.floor(r["units"] / r["groups"]) - 1)
-
-    # Propulsive redundancy: engine-out for boosters, (units - 1) otherwise
-    r_eng = None
-    if is_booster:
-        if r["main_f"] and r["main_n"] and r["mass"]:
-            excess = thrust - eo_threshold * r["mass"] * G0
-            r_eng = max(0, min(int(r["main_n"]) - 1, math.floor(excess / r["main_f"])))
-    elif r["prop_units"] is not None:
-        r_eng = max(0, int(r["prop_units"]) - 1)
-
-    return tw, r_rcs, r_eng, thrust, vehicle_mass
-
-
-# --- Estimated per-unit failure probabilities --------------------------------
-# No manufacturer publishes these, so they are reasoned engineering guesses.
-# Ordered by maturity and mechanical simplicity: fewer moving parts and more
-# accumulated flight time mean a lower per-unit failure probability.
-RELIABILITY = {
-    "cold_gas": (0.003, "Cold gas: no combustion, no ignition, no thermal cycling of a chamber. "
-                        "The only failure mode of substance is a stuck valve, so this is the most "
-                        "reliable class per unit."),
-    "monoprop": (0.005, "Monopropellant hydrazine: catalytic decomposition, no ignition system, no "
-                        "mixture-ratio control. Decades of flight time on the MR-series and MONARC "
-                        "families. Main degradation mode is catalyst-bed ageing, which is gradual."),
-    "biprop":   (0.010, "Bipropellant: two feed systems, a mixture ratio to hold and real combustion "
-                        "temperatures. Roughly twice the plumbing of a monoprop thruster and "
-                        "correspondingly more to go wrong; covers R-4D, Leros, AJ10 and the large "
-                        "regeneratively-cooled engines."),
-    "solid":    (0.015, "Solid motor: mechanically trivial but CANNOT be shut down, throttled or "
-                        "inspected once cast. Any failure is a loss of vehicle rather than a degraded "
-                        "mode, so the effective per-unit figure is set higher than its parts count "
-                        "alone would suggest."),
-}
-DEFAULT_P_RCS, DEFAULT_P_ENG = 0.005, 0.010   # monoprop / biprop, the commonest cases
-
-
-# Word-boundary patterns. Substring matching is not safe here: a bare "ion"
-# matches "locations" and "correction", which silently classified New Horizons
-# and Voyager 1 as electric propulsion.
-_CLASS_PATTERNS = [
-    ("cold_gas", r"cold[- ]gas|\bnitrogen\b|\bgn2\b"),
-    ("solid",    r"\bsolid\b|\bsrb\b|\bp120c\b|\bp80\b|\bbooster\b"),
-    ("monoprop", r"\bhydrazine\b|\bmonopropellant\b|\bmonoprop\b|\bmonarc\b|\bcold\b"),
-]
-
-
-def classify(text):
-    """Map a tier description to a reliability class."""
-    t = (text or "").lower()
-    for cls, pat in _CLASS_PATTERNS:
+def tech(text):
+    """Which reliability class a tier description belongs to."""
+    t = str(text or "").lower()
+    for cls, pat in TECH_PATTERNS:
         if re.search(pat, t):
             return cls
     return "biprop"
 
 
-def score(r_rcs, r_eng, p_rcs, p_eng, plus_one):
-    """score = 1/p_rcs**R_rcs + 1/p_eng**R_eng.
+# --- reading the workbook ---------------------------------------------------
 
-    A tier the spacecraft does not have contributes NOTHING - it is omitted from
-    the sum rather than entering as p**0 = 1. Europa Clipper and Crew Dragon have
-    no separable engine tier (their thrusters are already counted as the attitude
-    tier); GOCE and Artemis have no attitude tier. Adding a phantom 1 for those
-    would credit hardware that does not exist.
+def val(x):
+    """Float for a numeric cell, else None ('n/d', 'n/a', blank, text)."""
+    if x is None or (isinstance(x, float) and math.isnan(x)):
+        return None
+    return float(x) if isinstance(x, (int, float)) and not isinstance(x, bool) else None
+
+
+def read_rows(xlsx):
+    df = pd.read_excel(xlsx, "Data")
+    missing = [c for c in COL if c not in df.columns]
+    if missing:
+        sys.exit(f"error: workbook is missing columns: {missing}")
+    rows = []
+    for _, r in df.iterrows():
+        if not isinstance(r["Spacecraft"], str):
+            continue
+        rec = {short: (r[c] if short in ("category", "name") or "desig" in short
+                       else val(r[c])) for c, short in COL.items()}
+        rows.append(rec)
+    return rows
+
+
+def thrust_and_tw(r):
+    """Total thrust used for T/W, and T/W itself (payload excluded)."""
+    def tier(f, n):
+        return None if f is None or n is None else f * n
+
+    tiers = [tier(r["main_f"], r["main_n"]), tier(r["aux_f"], r["aux_n"])]
+    if r["category"] != "Boosters":            # boosters neglect the RCS tier
+        tiers.append(tier(r["rcs_f"], r["rcs_n"]))
+    thrust = sum(t for t in tiers if t is not None)
+
+    mass = None if r["mass"] is None else r["mass"] - (r["payload"] or 0.0)
+    tw = thrust / (mass * G0) if mass and mass > 0 and thrust > 0 else None
+    return thrust, mass, tw
+
+
+# --- how many failures break each system ------------------------------------
+
+def rcs_success(r, geom, p):
+    """P(the RCS keeps its control DOF), and how that was worked out.
+
+    With the thruster geometry available this is exact: `counts[k]` is how
+    many of the C(N,k) ways to lose k thrusters actually cost a DOF, so
+
+        P(lost) = sum_k counts[k] * p^k * (1-p)^(N-k)
+
+    Losing k thrusters is fatal for some choices of which k and survivable for
+    others - only 24 of the 120 pairs break the Apollo LM - and assuming the
+    worst choice every time overstates the failure rate several-fold.
+
+    Past the enumerated depth K every failure set is counted as fatal. That is
+    conservative and cheap: at p ~ 0.01 those terms are ~1e-8.
+
+    Also returns how many failures the RCS tolerates no matter WHICH thrusters
+    they are - one less than the smallest fatal set.
     """
-    terms = []
-    if r_rcs is not None and r_rcs != 0:
-        terms.append(p_rcs ** (r_rcs))
-    if r_eng is not None and r_eng != 0:
-        terms.append(p_eng ** (r_eng ))
-    return 1/max(terms) if terms else None
+    g = geom.get(r["name"])
+    if g:
+        N, counts, q = g["N"], g["counts"], 1.0 - p
+        lost = sum(c * p**k * q**(N - k) for k, c in counts.items())
+        lost += sum(math.comb(N, k) * p**k * q**(N - k)
+                    for k in range(max(counts) + 1, N + 1))
+        tolerated = min((k for k, n in counts.items() if n),
+                        default=max(counts) + 1) - 1
+        return 1.0 - lost, N, counts, tolerated
+    # No geometry: fall back to counting, and assume the worst case - losing
+    # one whole cluster costs the DOF.
+    if r["units"] and r["groups"]:
+        N, n = int(r["units"]), max(1, int(r["units"]) // int(r["groups"]))
+        return p_success(N, n, p), N, None, n - 1
+    return None, None, None, None
 
 
-def place_labels(fig, ax, anns, recs, pad=2.0):
-    """Nudge point labels off each other.
+def tvc_system(r, thrust, eo_threshold):
+    """(N engines, n failures that lose thrust-vector control) or None."""
+    if r["category"] == "Boosters":
+        if not (r["main_f"] and r["main_n"] and r["mass"]):
+            return None
+        # It must keep enough thrust to stay flying, so it can shed only what
+        # its liftoff margin covers; one more failure than that ends the flight.
+        budget = math.floor((thrust - eo_threshold * r["mass"] * G0) / r["main_f"])
+        budget = max(0, min(int(r["main_n"]) - 1, budget))
+        return int(r["main_n"]), budget + 1
+    # No propulsive unit count means there is no separable engine system:
+    # either no main engine at all (Sentinel-3A, SMAP) or the thrusters are
+    # already the attitude tier (Crew Dragon, Europa Clipper).
+    if not r["prop_units"]:
+        return None
+    N = int(r["prop_units"])
+    return N, N                                    # lost only when all fail
 
-    Tries a ranked list of offsets per label and keeps the first that collides
-    with neither an already-placed label nor a data marker. Purely cosmetic -
-    it never moves a point, only its text.
+
+def rcs_dof_required(r):
+    """How many DOF the RCS alone is responsible for.
+
+    A gimballed main engine does the translating, so where one exists the RCS
+    only has to hold ATTITUDE: 3 rotational DOF, the moment rows of the wrench.
+    Where there is none, whatever the vehicle needs falls to the thrusters -
+    6 DOF for something that has to translate itself (Crew Dragon docking,
+    Europa Clipper), 3 for the satellites and probes that only ever point.
+
+    Spin-stabilised vehicles keep the workbook's lower figure: MSG needs only
+    its 2 transverse axes actively controlled, and spinning up to 3 would
+    invent a requirement its design deliberately avoids.
     """
-    # Ranked offsets. The four boosters land at almost the same coordinates
-    # (identical score of 2, T/W within a factor of 2), so the ladder has to run
-    # well beyond the usual +/-30pt before it finds clean slots for all of them.
-    candidates = []
-    for dy in (4, -12, 15, -23, 26, -34, 38, -46, 50, -58, 62, -70):
-        candidates.append((9, dy, "left"))
-        candidates.append((-9, dy, "right"))
+    m = r["dof"]
+    if m is None:
+        return None
+    return min(int(m), 3) if r["tvc"] else int(m)
+
+
+def rcs_geometry(rows, enabled, depth):
+    """Spacecraft -> which thruster losses actually cost a control DOF."""
+    if not enabled:
+        return {}, "floor(N/k) cluster heuristic (geometry ignored)"
+    try:
+        import rcs_dof
+        dof = {r["name"]: r["rcs_dof"] for r in rows if r["rcs_dof"]}
+        return (rcs_dof.lethal_counts(dof, depth),
+                f"exact over the actuator geometry, all failure sets up to {depth}")
+    except Exception as exc:
+        print(f"warning: geometry unavailable ({exc}); using floor(N/k)",
+              file=sys.stderr)
+        return {}, "floor(N/k) cluster heuristic (geometry ignored)"
+
+
+def evaluate(rows, args):
+    """Attach T/W and the success probabilities to every row."""
+    # The RCS requirement depends on whether a TVC engine exists, so the
+    # engine side has to be settled before the geometry can be tested.
+    for r in rows:
+        thrust, mass, tw = thrust_and_tw(r)
+        r.update(thrust=thrust, vehicle_mass=mass, tw=tw,
+                 tvc=tvc_system(r, thrust, args.engine_out_threshold))
+        r["rcs_dof"] = rcs_dof_required(r)
+
+    geom, dof_note = rcs_geometry(rows, args.rcs_dof == "geometry", args.depth)
+    for r in rows:
+        r["rcs_tech"] = tech(r["rcs_desig"])
+        r["eng_tech"] = tech(r["eng_desig"] if r["category"] == "Boosters"
+                             else r["prop_desig"])
+        p_rcs = args.p_rcs if args.p_rcs is not None else P_UNIT[r["rcs_tech"]]
+        p_eng = args.p_eng if args.p_eng is not None else P_UNIT[r["eng_tech"]]
+
+        P_rcs, rcs_N, rcs_counts, rcs_ok = rcs_success(r, geom, p_rcs)
+        r.update(p_rcs=p_rcs, p_eng=p_eng, P_rcs=P_rcs,
+                 rcs_N=rcs_N, rcs_counts=rcs_counts, rcs_tolerated=rcs_ok,
+                 tvc_tolerated=r["tvc"][1] - 1 if r["tvc"] else None,
+                 P_tvc=p_success(*r["tvc"], p_eng) if r["tvc"] else None)
+        # the weaker system governs; a system the vehicle lacks is left out
+        have = [p for p in (r["P_rcs"], r["P_tvc"]) if p is not None]
+        r["P_success"] = min(have) if have else None
+    return dof_note
+
+
+# --- output -----------------------------------------------------------------
+
+def write_csv(path, rows, depth):
+    # One column per failure size, never a list packed into one cell: a cell
+    # holding "1:0; 2:7" breaks any spreadsheet that imports CSV as
+    # semicolon-delimited, silently shifting every later column right.
+    fatal_cols = [f"Fatal {k}-failure sets" for k in range(1, depth + 1)]
+    with open(path, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["Category", "Spacecraft", "T/W",
+                    "RCS units N", "RCS DOF required", "RCS basis",
+                    "Fewest fatal failures", *fatal_cols,
+                    "RCS tech", "p per thruster", "P(success) RCS",
+                    "TVC units N", "TVC n to fail", "TVC tech", "p per engine",
+                    "P(success) TVC",
+                    "P(mission success)", "Governing system", "Plotted"])
+        for r in rows:
+            gov = ("n/a" if r["P_success"] is None else
+                   "RCS" if r["P_rcs"] == r["P_success"] else "TVC")
+            # 9 decimals: at 6 the best vehicles all round to a flat 1.000000
+            f = lambda v, s="{:.9f}": "n/a" if v is None else s.format(v)
+            c = r["rcs_counts"]
+            has_rcs = r["P_rcs"] is not None
+            w.writerow([r["category"], r["name"], f(r["tw"], "{:.6g}"),
+                        r["rcs_N"] or "n/a",
+                        r["rcs_dof"] if has_rcs else "n/a",
+                        "n/a" if not has_rcs else
+                        "geometry" if c else "floor(N/k)",
+                        min((k for k, n in c.items() if n), default=f"> {depth}")
+                        if c else "n/a",
+                        *[(c.get(k, "n/a") if c else "n/a")
+                          for k in range(1, depth + 1)],
+                        r["rcs_tech"] if has_rcs else "n/a",
+                        r["p_rcs"] if has_rcs else "n/a",
+                        f(r["P_rcs"]),
+                        r["tvc"][0] if r["tvc"] else "n/a",
+                        r["tvc"][1] if r["tvc"] else "n/a",
+                        r["eng_tech"] if r["tvc"] else "n/a",
+                        r["p_eng"] if r["tvc"] else "n/a",
+                        f(r["P_tvc"]),
+                        f(r["P_success"]), gov,
+                        "yes" if r["tw"] and r["P_success"] else "no"])
+
+
+SHEET = "Mission success"
+
+# The whole model in ten columns, in the order they are read: how many units,
+# how likely each is to fail, how many failures the system absorbs, what that
+# makes the system's odds, and the weaker of the two at the end.
+SHEET_COLUMNS = [
+    ("Spacecraft",                    lambda r: r["name"]),
+    ("TVC engines, N",                lambda r: r["tvc"][0] if r["tvc"] else None),
+    ("TVC failure rate, each",        lambda r: r["p_eng"] if r["tvc"] else None),
+    ("RCS thrusters, N",              lambda r: r["rcs_N"]),
+    ("RCS failure rate, each",        lambda r: r["p_rcs"] if r["rcs_N"] else None),
+    ("Max RCS failures tolerated",    lambda r: r["rcs_tolerated"]),
+    ("Max TVC failures tolerated",    lambda r: r["tvc_tolerated"]),
+    ("TVC ensemble success",          lambda r: r["P_tvc"]),
+    ("RCS ensemble success",          lambda r: r["P_rcs"]),
+    ("Mission success",               lambda r: r["P_success"]),
+]
+
+
+def write_sheet(xlsx, rows):
+    """Rewrite the workbook's '{SHEET}' tab as the plain ten-column view.
+
+    Every other sheet is left exactly as it is - 'Data' in particular, which
+    holds the thrust, mass and geometry inputs that all of this is computed
+    from and that the scripts read on the next run.
+    """
+    from openpyxl import load_workbook
+    from openpyxl.styles import Alignment, Font
+
+    wb = load_workbook(xlsx)
+    if SHEET in wb.sheetnames:
+        del wb[SHEET]
+    ws = wb.create_sheet(SHEET, 0)                  # first tab
+
+    ws.append([c for c, _ in SHEET_COLUMNS])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(wrap_text=True, vertical="bottom")
+    ws.freeze_panes = "B2"
+
+    for r in sorted(rows, key=lambda r: (r["category"], r["name"])):
+        ws.append([get(r) for _, get in SHEET_COLUMNS])
+
+    for i, (col, _) in enumerate(SHEET_COLUMNS, start=1):
+        letter = ws.cell(row=1, column=i).column_letter
+        ws.column_dimensions[letter].width = 34 if i == 1 else 13
+        if i == 1:
+            continue
+        for cell in ws[letter][1:]:
+            # rates and probabilities need the decimals; counts do not
+            cell.number_format = "0.000000000" if i in (3, 5, 8, 9, 10) else "0"
+    wb.save(xlsx)
+
+
+def place_labels(fig, ax, anns, pts, pad=2.0):
+    """Nudge the point labels off each other and off the markers. Cosmetic
+    only: it moves text, never a point."""
+    offsets = [(dx, dy, ha) for dy in (4, -12, 15, -23, 26, -34, 38, -46)
+               for dx, ha in ((9, "left"), (-9, "right"))]
     fig.canvas.draw()
     rend = fig.canvas.get_renderer()
+    axbox = ax.get_window_extent(renderer=rend)
+    taken = []
+    for p in pts:                                   # the markers themselves
+        x, y = ax.transData.transform((p["tw"], p["P_success"]))
+        taken.append(matplotlib.transforms.Bbox.from_bounds(x - 9, y - 9, 18, 18))
 
-    # keep labels off the markers themselves
-    occupied = []
-    for rec in recs:
-        x, y = ax.transData.transform((rec["tw"], rec["y"]))
-        occupied.append(matplotlib.transforms.Bbox.from_bounds(x - 9, y - 9, 18, 18))
-
-    def overlap_area(box):
-        """Total area this label would share with markers and placed labels."""
-        total = 0.0
-        for o in occupied:
-            dx = min(box.x1, o.x1) - max(box.x0, o.x0)
-            dy = min(box.y1, o.y1) - max(box.y0, o.y0)
+    def cost(box):
+        c = 0.0
+        for t in taken:
+            dx = min(box.x1, t.x1) - max(box.x0, t.x0)
+            dy = min(box.y1, t.y1) - max(box.y0, t.y0)
             if dx > 0 and dy > 0:
-                total += dx * dy
-        return total
+                c += dx * dy
+        outside = (max(0, axbox.y0 - box.y0) + max(0, box.y1 - axbox.y1) +
+                   max(0, axbox.x0 - box.x0) + max(0, box.x1 - axbox.x1))
+        return c + outside * 1000.0                 # never spill off the axes
 
-    # place wider labels first - they are the hardest to fit
-    order = sorted(range(len(anns)), key=lambda i: -len(anns[i].get_text()))
-    for i in order:
-        ann = anns[i]
-        best = None                           # (overlap_area, dx, dy, ha, box)
-        for dx, dy, ha in candidates:
-            # Annotation stores its text offset in .xyann; Text.set_position() is
-            # overwritten by update_positions() at draw time and has no effect here.
-            ann.xyann = (dx, dy)
+    for i in sorted(range(len(anns)), key=lambda i: -len(anns[i].get_text())):
+        ann, best = anns[i], None
+        for dx, dy, ha in offsets:
+            ann.xyann = (dx, dy)                    # set_position() is ignored
             ann.set_horizontalalignment(ha)
             b = ann.get_window_extent(renderer=rend)
             box = matplotlib.transforms.Bbox.from_bounds(
                 b.x0 - pad, b.y0 - pad, b.width + 2 * pad, b.height + 2 * pad)
-            area = overlap_area(box)
-            if best is None or area < best[0]:
-                best = (area, dx, dy, ha, box)
-            if area == 0.0:                   # clean slot, stop looking
+            c = cost(box)
+            if best is None or c < best[0]:
+                best = (c, dx, dy, ha, box)
+            if c == 0.0:
                 break
-        # Always take the least-overlapping option. Falling back to a fixed
-        # default instead would stack the four near-coincident boosters on top
-        # of each other, which is exactly the case this needs to handle.
         _, dx, dy, ha, box = best
-        ann.xyann = (dx, dy)
-        ann.set_horizontalalignment(ha)
-        occupied.append(box)
+        ann.xyann, _ = (dx, dy), ann.set_horizontalalignment(ha)
+        taken.append(box)
+        if ann.arrow_patch is not None:             # leader only when it's far
+            ann.arrow_patch.set_visible(abs(dy) > 16)
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--xlsx", type=Path, default=DEFAULT_XLSX)
-    ap.add_argument("--out", type=Path, default=HERE / "reliability_vs_tw.png")
-    ap.add_argument("--csv", type=Path, default=HERE / "reliability_vs_tw.csv",
-                    help="table view of the plotted data (accessibility fallback)")
-    ap.add_argument("--p-rcs", type=float, default=None,
-                    help="override the per-thruster failure probability for every spacecraft; "
-                         "by default each is estimated from its thruster technology")
-    ap.add_argument("--p-eng", type=float, default=None,
-                    help="override the per-engine failure probability for every spacecraft; "
-                         "by default each is estimated from its engine technology")
-    ap.add_argument("--list-estimates", action="store_true",
-                    help="print the per-technology failure-probability estimates and exit")
-    ap.add_argument("--engine-out-threshold", type=float, default=1.2,
-                    help="booster liftoff T/W threshold for engine-out (default 1.2)")
-    ap.add_argument("--normalize", choices=["none", "log", "linear"], default="none",
-                    help="rescale the y axis. 'none' (default) plots the raw reliability score on a "
-                         "log axis; 'log' maps log10(score) onto 0-1; 'linear' does raw min-max, "
-                         "which collapses most points near 0 because the score is exponential in "
-                         "redundancy.")
-    ap.add_argument("--no-reverse", action="store_true",
-                    help="by default the normalised axis is reversed, so 0 is the MOST redundant "
-                         "spacecraft and 1 the least; this flag restores 1 = most redundant")
-    ap.add_argument("--failures-to-lose", choices=["R", "R+1"], default="R",
-                    help="exponent convention: 'R' is the formula as specified; "
-                         "'R+1' is the strict reliability reading (see note below)")
-    ap.add_argument("--dpi", type=int, default=200)
-    args = ap.parse_args()
-
-    if args.list_estimates:
-        print("Estimated per-unit failure probability by technology\n")
-        for cls, (p, why) in RELIABILITY.items():
-            print(f"  {cls:9s} p = {p:.3f}   {why}\n")
-        return
-    for v in (args.p_rcs, args.p_eng):
-        if v is not None and not (0 < v < 1):
-            sys.exit("error: failure probabilities must lie strictly between 0 and 1")
-    if not args.xlsx.exists():
-        sys.exit(f"error: workbook not found: {args.xlsx}")
-
-    plus_one = args.failures_to_lose == "R+1"
-    rows, plotted, skipped = read_rows(args.xlsx), [], []
-
-    for r in rows:
-        tw, r_rcs, r_eng, thrust, vmass = derive(r, args.engine_out_threshold)
-        # per-unit failure probability: estimated from the technology of each
-        # tier unless the user pins a single value for the whole fleet
-        rcs_cls = classify(r["att_tier"])
-        eng_src = r["prop_which"] if r["category"] != "Boosters" else r["main_desig"]
-        eng_cls = classify(eng_src)
-        p_rcs = args.p_rcs if args.p_rcs is not None else RELIABILITY[rcs_cls][0]
-        p_eng = args.p_eng if args.p_eng is not None else RELIABILITY[eng_cls][0]
-        rec = dict(r, tw=tw, r_rcs=r_rcs, r_eng=r_eng, thrust=thrust,
-                   vehicle_mass=vmass, rcs_cls=rcs_cls, eng_cls=eng_cls,
-                   p_rcs=p_rcs, p_eng=p_eng,
-                   score=score(r_rcs, r_eng, p_rcs, p_eng, plus_one))
-        (plotted if (tw and rec["score"]) else skipped).append(rec)
-
-    # ---- normalisation ------------------------------------------------------
-    scored = [r for r in plotted + skipped if r["score"]]
-    lo = min(r["score"] for r in scored) if scored else 0.0
-    hi = max(r["score"] for r in scored) if scored else 1.0
-
-    def normalise(v):
-        if v is None:
-            return None
-        if args.normalize == "none":
-            return v
-        if args.normalize == "linear":
-            return 0.0 if hi == lo else (v - lo) / (hi - lo)
-        llo, lhi = math.log10(lo), math.log10(hi)     # log: the natural scale here
-        return 0.0 if lhi == llo else (math.log10(v) - llo) / (lhi - llo)
-
-    for r in plotted + skipped:
-        v = normalise(r["score"])
-        # Reversed by default: 0 marks the most redundant vehicle and 1 the least,
-        # so the axis reads as a redundancy DEFICIT rather than a score.
-        if v is not None and args.normalize != "none" and not args.no_reverse:
-            v = 1.0 - v
-        r["y"] = v
-
-    # ---- table view (the chart's accessibility fallback) --------------------
-    with open(args.csv, "w", newline="") as fh:
-        w = csv.writer(fh)
-        w.writerow(["Category", "Spacecraft", "T/W", "RCS class", "p_rcs",
-                    "R_rcs (worst)", "Engine class", "p_eng",
-                    "R_eng (propulsive/engine-out)", "Reliability score",
-                    f"Normalised ({args.normalize})", "Plotted"])
-        for rec in plotted + skipped:
-            no_tier = rec["r_rcs"] is None and rec["r_eng"] is None
-            w.writerow([rec["category"], rec["name"],
-                        f"{rec['tw']:.4e}" if rec["tw"] else "n/d",
-                        "n/a" if rec["r_rcs"] is None else rec["rcs_cls"],
-                        "n/a" if rec["r_rcs"] is None else rec["p_rcs"],
-                        "n/a" if rec["r_rcs"] is None else rec["r_rcs"],
-                        "n/a" if rec["r_eng"] is None else rec["eng_cls"],
-                        "n/a" if rec["r_eng"] is None else rec["p_eng"],
-                        "n/a" if rec["r_eng"] is None else rec["r_eng"],
-                        "n/a" if rec["score"] is None else f"{rec['score']:.4e}",
-                        "n/a" if rec["y"] is None else f"{rec['y']:.4f}",
-                        "yes" if rec in plotted else
-                        ("no (no tier data)" if no_tier else "no (no T/W)")])
-
-    # ---- figure -------------------------------------------------------------
+def draw(rows, args, dof_note):
+    plotted = [r for r in rows if r["tw"] and r["P_success"] is not None]
     fig, ax = plt.subplots(figsize=(13, 8.5))
     fig.patch.set_facecolor(SURFACE)
     ax.set_facecolor(SURFACE)
 
-    for cat in CATEGORY_ORDER:
+    for cat, (colour, marker) in CATEGORY_STYLE.items():
         pts = [r for r in plotted if r["category"] == cat]
-        if not pts:
-            continue
-        colour, marker = CATEGORY_STYLE[cat]
-        ax.scatter([p["tw"] for p in pts], [p["y"] for p in pts],
-                   s=125, c=colour, marker=marker,
-                   edgecolors=SURFACE, linewidths=1.6, zorder=3, label=cat)
+        if pts:
+            ax.scatter([p["tw"] for p in pts], [p["P_success"] for p in pts],
+                       s=125, c=colour, marker=marker, edgecolors=SURFACE,
+                       linewidths=1.6, zorder=3, label=cat)
 
-    # Direct label on every point: discharges both the contrast-relief rule and
-    # the secondary-encoding requirement, so identity never rests on colour.
-    # Offsets are chosen automatically - several clusters (the four boosters near
-    # T/W ~ 2, and Apollo CSM/LM) collide at the default offset.
-    anns = []
-    for rec in plotted:
-        label = SHORT.get(rec["name"], rec["name"])
-        anns.append(ax.annotate(label, (rec["tw"], rec["y"]),
-                                textcoords="offset points", xytext=(9, 4),
-                                fontsize=7.6, color=INK_SECONDARY, zorder=4))
-    # NB: placement happens at the very end, after the log scales, limits and
-    # tight_layout are all settled - the marker positions it reasons about are
-    # otherwise those of a linear axis and bear no relation to the final figure.
+    anns = [ax.annotate(SHORT.get(r["name"], r["name"]),
+                        (r["tw"], r["P_success"]), textcoords="offset points",
+                        xytext=(9, 4), fontsize=7.6, color=INK2, zorder=4,
+                        arrowprops=dict(arrowstyle="-", lw=0.6, color="#b8b7b0",
+                                        shrinkA=1, shrinkB=4))
+            for r in plotted]
 
     ax.set_xscale("log")
     xs = [r["tw"] for r in plotted]
-    ax.set_xlim(min(xs) / 4.0, max(xs) * 4.0)   # room for the edge labels
-    if args.normalize == "none":
-        ax.set_yscale("log")
-        ys = [r["y"] for r in plotted]
-        ax.set_ylim(min(ys) / 8.0, max(ys) * 25.0)
+    ax.set_xlim(min(xs) / 4.0, max(xs) * 4.0)
+    ys = [r["P_success"] for r in plotted]
+    if args.yscale == "logit":
+        # Success probabilities crowd against 1. Plotting the FAILURE
+        # probability 1-P on a reversed log axis spreads them out while the
+        # ticks still read as P(success).
+        ax.set_yscale("function", functions=(lambda p: -_safe_log(1 - p),
+                                             lambda v: 1 - 10.0**(-v)))
+        worst = min(ys)
+        ticks = [t for t in (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999,
+                             0.9999999, 0.99999999) if t > worst - 0.05]
+        ax.set_yticks(ticks)
+        ax.set_yticklabels([f"{t:.8f}".rstrip("0") for t in ticks])
+        ax.set_ylim(1 - (1 - min(ys)) * 2.0, 1 - (1 - max(ys)) * 0.25)
     else:
-        ax.set_ylim(-0.06, 1.20)                # 0-1 plus headroom for labels
-        ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        span = 1.0 - min(ys)
+        ax.set_ylim(min(ys) - 0.12 * span, 1.0 + 0.10 * span)
+
     ax.set_xlabel("Thrust-to-weight ratio  T/W  [-]   (payload excluded)",
-                  fontsize=10.5, color=INK_PRIMARY, labelpad=9)
-    if args.normalize == "none":
-        ylab = ("Reliability score   $1 / min(p_{RCS}^{R_{RCS}}, p_{eng}^{R_{eng}})$"
-                "   (higher = more redundant)")
-    else:
-        ends = ("0 = least redundant, 1 = most" if args.no_reverse
-                else "0 = most redundant, 1 = least")
-        ylab = (f"Normalised redundancy deficit  [{ends}]"
-                f"\n({args.normalize} scaling of "
-                f"$p_{{RCS}}^{{-R_{{RCS}}}} + p_{{eng}}^{{-R_{{eng}}}}$)")
-    ax.set_ylabel(ylab, fontsize=10.5, color=INK_PRIMARY, labelpad=9)
+                  fontsize=10.5, color=INK, labelpad=9)
+    ax.set_ylabel("Probability the mission succeeds\n"
+                  "(weaker of the RCS and TVC systems)",
+                  fontsize=10.5, color=INK, labelpad=9)
+    ax.set_title("Mission success probability against thrust-to-weight ratio",
+                 fontsize=13.5, color=INK, pad=46, loc="left", fontweight="bold")
 
-    ax.set_title("Redundancy-weighted reliability against thrust-to-weight ratio",
-                 fontsize=13.5, color=INK_PRIMARY, pad=34, loc="left", fontweight="bold")
-    conv = "R" if not plus_one else "R+1"
-    if args.p_rcs is None and args.p_eng is None:
-        prob_note = "estimated per thruster technology (cold gas .003 / monoprop .005 / " \
-                    "biprop .010 / solid .015)"
-    else:
-        pr = "est." if args.p_rcs is None else f"{args.p_rcs:.3g}"
-        pe = "est." if args.p_eng is None else f"{args.p_eng:.3g}"
-        prob_note = f"RCS {pr}, engine {pe}"
-    ax.text(0.0, 1.014,
-            f"per-unit failure probability: {prob_note}   ·   "
-            f"exponent = {conv}   ·   booster engine-out at liftoff T/W ≥ "
-            f"{args.engine_out_threshold:g}   ·   "
-            f"{'y: raw score' if args.normalize == 'none' else f'y normalised: {args.normalize}'}"
-            f"   ·   {len(plotted)} of {len(rows)} spacecraft",
-            transform=ax.transAxes, fontsize=8.6, color=INK_MUTED)
+    p_note = ("estimated per technology (cold gas .003 / monoprop .005 / "
+              "biprop .010 / solid .015)"
+              if args.p_rcs is None and args.p_eng is None else
+              f"RCS {args.p_rcs or 'est.'}, engine {args.p_eng or 'est.'}")
+    ax.text(0.0, 1.045,
+            r"$P_{success} = \min(P(\mathrm{RCS\ survives}),\ "
+            r"P(\mathrm{TVC\ survives}))$ over the systems the vehicle has"
+            f"   ·   booster engine-out at liftoff T/W ≥ {args.engine_out_threshold:g}",
+            transform=ax.transAxes, fontsize=8.6, color=INK3)
+    ax.text(0.0, 1.012,
+            f"RCS DOF loss: {dof_note}   ·   per-unit failure probability: "
+            f"{p_note}   ·   {len(plotted)} of {len(rows)} spacecraft",
+            transform=ax.transAxes, fontsize=8.6, color=INK3)
 
-    ax.grid(True, which="major", linewidth=0.6, color="#e3e3df", zorder=0)
-    if args.normalize == "none":
-        ax.grid(True, which="minor", linewidth=0.4, color="#efefec", zorder=0)
+    ax.grid(True, which="both", linewidth=0.6, color="#e3e3df", zorder=0)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
         ax.spines[side].set_color("#d5d5d0")
-    ax.tick_params(colors=INK_SECONDARY, labelsize=9)
+    ax.tick_params(colors=INK2, labelsize=9)
 
-    # lower left: reversing the axis moved the least-redundant cluster (and GOCE)
-    # into the upper left, where the legend used to sit on top of them
     legend = ax.legend(loc="lower left", frameon=True, fontsize=9.2,
                        facecolor=SURFACE, edgecolor="#d5d5d0", framealpha=1.0,
                        borderpad=0.8, labelspacing=0.7, title="Spacecraft class")
     legend.get_title().set_fontsize(9.2)
-    legend.get_title().set_color(INK_PRIMARY)
-    for txt in legend.get_texts():
-        txt.set_color(INK_SECONDARY)
+    legend.get_title().set_color(INK)
+    for t in legend.get_texts():
+        t.set_color(INK2)
 
     fig.tight_layout()
-    place_labels(fig, ax, anns, plotted)
+    place_labels(fig, ax, anns, plotted)      # after the scales are settled
     fig.savefig(args.out, dpi=args.dpi, facecolor=SURFACE, bbox_inches="tight")
-    print(f"wrote {args.out}")
-    print(f"wrote {args.csv}")
+    return plotted
 
+
+def _safe_log(x):
+    import numpy as np
+    return np.log10(np.clip(x, 1e-12, None))
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--xlsx", type=Path, default=DEFAULT_XLSX)
+    ap.add_argument("--out", type=Path, default=HERE / "reliability_vs_tw.png")
+    ap.add_argument("--csv", type=Path, default=HERE / "reliability_vs_tw.csv")
+    ap.add_argument("--p-rcs", type=float, default=None,
+                    help="one failure probability per thruster for the whole "
+                         "fleet (default: estimated from each vehicle's tech)")
+    ap.add_argument("--p-eng", type=float, default=None,
+                    help="one failure probability per engine for the whole "
+                         "fleet (default: estimated from each vehicle's tech)")
+    ap.add_argument("--rcs-dof", choices=["geometry", "count"], default="geometry",
+                    help="how the RCS term is worked out: 'geometry' (default) "
+                         "counts which thruster losses actually cost a control "
+                         "DOF; 'count' assumes the worst case, that losing one "
+                         "whole cluster does")
+    ap.add_argument("--depth", type=int, default=4,
+                    help="how many simultaneous RCS failures to enumerate "
+                         "exactly (default 4); deeper sets are counted as fatal")
+    ap.add_argument("--engine-out-threshold", type=float, default=1.2,
+                    help="booster liftoff T/W threshold for engine-out (1.2)")
+    ap.add_argument("--yscale", choices=["logit", "linear"], default="logit",
+                    help="'logit' (default) spreads probabilities crowded "
+                         "against 1; 'linear' plots them as they are")
+    ap.add_argument("--no-sheet", action="store_true",
+                    help=f"do not refresh the workbook's '{SHEET}' tab")
+    ap.add_argument("--dpi", type=int, default=200)
+    args = ap.parse_args()
+
+    for p in (args.p_rcs, args.p_eng):
+        if p is not None and not 0 < p < 1:
+            sys.exit("error: failure probabilities must be strictly between 0 and 1")
+    if not args.xlsx.exists():
+        sys.exit(f"error: workbook not found: {args.xlsx}")
+
+    rows = read_rows(args.xlsx)
+    dof_note = evaluate(rows, args)
+    write_csv(args.csv, rows, args.depth)
+    plotted = draw(rows, args, dof_note)
+    if not args.no_sheet:
+        write_sheet(args.xlsx, rows)
+
+    print(f"wrote {args.out}\nwrote {args.csv}")
+    print("" if args.no_sheet else f"wrote {args.xlsx} ['{SHEET}' tab]\n")
+    print(f"{'Spacecraft':38s} {'T/W':>8s} {'P(RCS)':>12s} {'P(TVC)':>12s} "
+          f"{'P(success)':>12s}")
+    for r in sorted(rows, key=lambda r: (r["category"], r["name"])):
+        f = lambda v: "        n/a" if v is None else f"{v:12.8f}"
+        tw = f"{r['tw']:8.3f}" if r["tw"] else "     n/d"
+        print(f"{r['name'][:38]:38s} {tw} {f(r['P_rcs'])} {f(r['P_tvc'])} "
+              f"{f(r['P_success'])}")
+    skipped = [r for r in rows if r not in plotted]
     if skipped:
-        print(f"\n{len(skipped)} spacecraft omitted (no official T/W):")
-        for rec in skipped:
-            sc = "n/a - no tier data" if rec["score"] is None else f"{rec['score']:.3e}"
-            print(f"  - {rec['name']}  (score {sc})")
-
-    print("\nNOTE ON THE EXPONENT CONVENTION")
-    print("  The formula as specified raises the per-unit failure probability to R,")
-    print("  the number of tolerated failures. Strictly, losing a system that")
-    print("  tolerates R failures requires R+1 units to fail, so the ensemble")
-    print("  failure probability is p**(R+1). Both give the same ranking - the R+1")
-    print("  form just shifts every score by a constant factor 1/p. Run with")
-    print("  --failures-to-lose R+1 to compare.")
+        print(f"\n{len(skipped)} not plotted (no T/W or no actuation data): "
+              + ", ".join(r["name"] for r in skipped))
 
 
 if __name__ == "__main__":

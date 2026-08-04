@@ -177,7 +177,8 @@ def canted_ring(n, radius, z, F, cant_deg, axial=-1.0):
     return out
 
 
-def branch_clusters(n_total, radius, z, F, n_clusters=4, azimuth_offset=45.0):
+def branch_clusters(n_total, radius, z, F, n_clusters=4, azimuth_offset=45.0,
+                    cant_deg=35.0):
     """Distribute `n_total` small thrusters over `n_clusters` clusters spaced
     around a bus (Cassini, Juno, Voyager, New Horizons, and the generic case).
 
@@ -195,17 +196,32 @@ def branch_clusters(n_total, radius, z, F, n_clusters=4, azimuth_offset=45.0):
        pair and no cluster any tangential jet, losing yaw authority for the
        same reason. Rotating means clusters alternate axial / tangential and
        the set stays three-axis whatever the count.
+
+    3) Thrusters are CANTED, not purely axial or purely tangential. A purely
+       axial jet at radius R produces a moment arm lying in the body x-y plane,
+       and two such jets at diametrically opposite clusters produce COLLINEAR
+       arms. With only two thrusters per cluster that collapses the moment cone
+       to rank 2: the layout cannot produce a moment about one whole axis and
+       fails to positively span R^3 even with every thruster working - which no
+       real attitude-control system does. Canting mixes each thruster's axial
+       and tangential components so the columns are in general position, and a
+       Farkas positive-spanning test then passes for the intact set.
     """
     out = []
     az = np.deg2rad(azimuth_offset + 360.0 * np.arange(n_clusters) / n_clusters)
     per = [n_total // n_clusters + (1 if i < n_total % n_clusters else 0)
            for i in range(n_clusters)]
+    ca, sa = np.cos(np.deg2rad(cant_deg)), np.sin(np.deg2rad(cant_deg))
     for i, a in enumerate(az):
         c, s = np.cos(a), np.sin(a)
         r = np.array([radius * c, radius * s, z])
         tang = np.array([-s, c, 0.0])
-        pool = [np.array([0., 0., 1.]), np.array([0., 0., -1.]), tang, -tang]
-        pool = pool[2 * (i % 2):] + pool[:2 * (i % 2)]      # rotate per cluster
+        ax = np.array([0., 0., 1.])
+        # four canted directions: axial +/- blended with tangential +/-
+        pool = [ca * ax + sa * tang, -ca * ax + sa * tang,
+                sa * ax + ca * tang, -sa * ax - ca * tang]
+        pool = [p / np.linalg.norm(p) for p in pool]
+        pool = pool[i % 4:] + pool[:i % 4]          # rotate per cluster
         for j in range(per[i]):
             out.append(Thruster(r.copy(), pool[j % 4].copy(), F))
     return out

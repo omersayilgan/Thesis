@@ -1,22 +1,22 @@
-Category,Spacecraft,T/W,RCS class,p_rcs,R_rcs (worst),Engine class,p_eng,R_eng (propulsive/engine-out),Reliability score,Normalised (none),Plotted
-LEO Satellites,GRACE-FO (per satellite),3.3979e-05,cold_gas,0.003,1,cold_gas,0.003,1,3.3333e+02,333.3333,yes
-LEO Satellites,Sentinel-3A,6.5262e-04,monoprop,0.005,1,n/a,n/a,n/a,2.0000e+02,200.0000,yes
-GEO Satellites,Solar Dynamics Observatory (SDO),2.1948e-02,biprop,0.01,1,biprop,0.01,0,1.0000e+02,100.0000,yes
-GEO Satellites,Meteosat Second Generation (MSG),4.3848e-02,biprop,0.01,1,biprop,0.01,1,1.0000e+02,100.0000,yes
-Crewed Vehicles,Orion (CM + European Service Module),1.3756e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
-Crewed Vehicles,Apollo Command & Service Module,3.3063e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
-Crewed Vehicles,Apollo Lunar Module,4.6803e-01,biprop,0.01,3,biprop,0.01,0,1.0000e+06,1000000.0000,yes
-Deep Space Probes,Juno,1.8144e-02,monoprop,0.005,2,biprop,0.01,0,4.0000e+04,40000.0000,yes
-Deep Space Probes,Cassini (Cassini-Huygens),1.6575e-02,monoprop,0.005,3,biprop,0.01,1,1.0000e+02,100.0000,yes
-Deep Space Probes,New Horizons,5.8026e-03,monoprop,0.005,0,monoprop,0.005,3,8.0000e+06,8000000.0000,yes
-Deep Space Probes,Europa Clipper,1.1604e-02,biprop,0.01,3,n/a,n/a,n/a,1.0000e+06,1000000.0000,yes
-Deep Space Probes,Voyager 1,1.7016e-03,monoprop,0.005,2,monoprop,0.005,3,4.0000e+04,40000.0000,yes
-Boosters,Delta IV Heavy,1.3165e+00,n/a,n/a,n/a,biprop,0.01,0,n/a,n/a,no (no T/W)
-Boosters,Ariane 5 ECA,1.9767e+00,n/a,n/a,n/a,biprop,0.01,0,n/a,n/a,no (no T/W)
-Boosters,Vega-C,2.2579e+00,n/a,n/a,n/a,solid,0.015,0,n/a,n/a,no (no T/W)
-Boosters,Vega,2.1898e+00,n/a,n/a,n/a,solid,0.015,0,n/a,n/a,no (no T/W)
-LEO Satellites,SMAP,n/d,monoprop,0.005,1,n/a,n/a,n/a,2.0000e+02,200.0000,no (no T/W)
-LEO Satellites,Sentinel-1A,n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
-GEO Satellites,GOES-16 (GOES-R),n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
-GEO Satellites,GOES-19 (GOES-U),n/d,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no (no tier data)
-Crewed Vehicles,Crew Dragon (Dragon 2),n/d,biprop,0.01,3,n/a,n/a,n/a,1.0000e+06,1000000.0000,no (no T/W)
+Category,Spacecraft,T/W,RCS units N,RCS DOF required,RCS basis,Fewest fatal failures,Fatal 1-failure sets,Fatal 2-failure sets,Fatal 3-failure sets,Fatal 4-failure sets,RCS tech,p per thruster,P(success) RCS,TVC units N,TVC n to fail,TVC tech,p per engine,P(success) TVC,P(mission success),Governing system,Plotted
+Boosters,Delta IV Heavy,1.31648,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,3,1,biprop,0.01,0.970299000,0.970299000,TVC,yes
+Boosters,Ariane 5 ECA,1.97668,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+Boosters,Vega-C,2.25794,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,1,1,solid,0.015,0.985000000,0.985000000,TVC,yes
+Boosters,Vega,2.18978,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,1,1,solid,0.015,0.985000000,0.985000000,TVC,yes
+LEO Satellites,GRACE-FO (per satellite),3.39792e-05,12,3,geometry,2,0,6,60,255,cold_gas,0.003,0.999946001,2,2,cold_gas,0.003,0.999991000,0.999946001,RCS,yes
+LEO Satellites,Sentinel-3A,0.000652618,8,3,geometry,2,0,7,35,64,monoprop,0.005,0.999825879,n/a,n/a,n/a,n/a,n/a,0.999825879,RCS,yes
+LEO Satellites,SMAP,n/a,8,3,geometry,2,0,7,35,64,monoprop,0.005,0.999825879,n/a,n/a,n/a,n/a,n/a,0.999825879,RCS,no
+LEO Satellites,Sentinel-1A,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no
+GEO Satellites,Solar Dynamics Observatory (SDO),0.0219476,8,3,geometry,2,0,7,35,64,biprop,0.01,0.999307059,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+GEO Satellites,Meteosat Second Generation (MSG),0.0438478,6,2,geometry,1,2,11,20,15,biprop,0.01,0.979903990,2,2,biprop,0.01,0.999900000,0.979903990,RCS,yes
+GEO Satellites,GOES-16 (GOES-R),n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no
+GEO Satellites,GOES-19 (GOES-U),n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,no
+Crewed Vehicles,Orion (CM + European Service Module),0.137556,24,3,geometry,4,0,0,0,6,biprop,0.01,0.999996324,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+Crewed Vehicles,Apollo Command & Service Module,0.330634,16,3,geometry,2,0,4,56,360,biprop,0.01,0.999599771,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+Crewed Vehicles,Apollo Lunar Module,0.468031,16,3,geometry,2,0,4,56,360,biprop,0.01,0.999599771,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+Crewed Vehicles,Crew Dragon (Dragon 2),n/a,16,6,geometry,2,0,16,204,1113,biprop,0.01,0.998420729,n/a,n/a,n/a,n/a,n/a,0.998420729,RCS,no
+Deep Space Probes,Juno,0.0181439,12,2,floor(N/k),n/a,n/a,n/a,n/a,n/a,monoprop,0.005,0.999973413,1,1,biprop,0.01,0.990000000,0.990000000,TVC,yes
+Deep Space Probes,Cassini (Cassini-Huygens),0.0165745,16,3,geometry,4,0,0,0,5,monoprop,0.005,0.999999984,2,2,biprop,0.01,0.999900000,0.999900000,TVC,yes
+Deep Space Probes,New Horizons,0.00580257,12,3,geometry,2,0,6,60,255,monoprop,0.005,0.999850009,4,4,monoprop,0.005,0.999999999,0.999850009,RCS,yes
+Deep Space Probes,Europa Clipper,0.0116037,24,3,floor(N/k),n/a,n/a,n/a,n/a,n/a,biprop,0.01,0.999909462,n/a,n/a,n/a,n/a,n/a,0.999909462,RCS,yes
+Deep Space Probes,Voyager 1,0.00170161,16,3,geometry,4,0,0,0,5,monoprop,0.005,0.999999984,4,4,monoprop,0.005,0.999999999,0.999999984,RCS,yes
