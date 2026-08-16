@@ -1,0 +1,299 @@
+{
+  "D1": {
+    "derated": {
+      "x": [
+        1.68,
+        6.3,
+        11.34,
+        15.96,
+        21.0,
+        26.04,
+        30.66,
+        35.699999999999996
+      ],
+      "y": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bracket": [
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable"
+      ],
+      "n_solves": 8
+    },
+    "design": {
+      "x": [
+        1.04,
+        3.9,
+        7.0200000000000005,
+        9.88,
+        13.0,
+        16.12,
+        18.98,
+        22.099999999999998
+      ],
+      "y": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bracket": [
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable"
+      ],
+      "n_solves": 8
+    }
+  },
+  "D2": {
+    "derated": {
+      "x": [
+        0.1,
+        0.2,
+        0.28,
+        0.35,
+        0.45,
+        0.6,
+        0.75,
+        0.9
+      ],
+      "y": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        640.625
+      ],
+      "bracket": [
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "bracketed"
+      ],
+      "n_solves": 16
+    },
+    "design": {
+      "x": [
+        0.1,
+        0.2,
+        0.28,
+        0.35,
+        0.45,
+        0.6,
+        0.75,
+        0.9
+      ],
+      "y": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bracket": [
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable",
+        "unrecoverable"
+      ],
+      "n_solves": 8
+    },
+    "eta_sat": 0.2782054840142096
+  },
+  "D5": {
+    "derated": {
+      "t_f": [
+        1.68,
+        6.3,
+        11.34,
+        15.96,
+        21.0,
+        26.04,
+        30.66,
+        35.699999999999996
+      ],
+      "eta_star": [
+        0.2890625,
+        0.5234375,
+        0.875,
+        0.8359375,
+        NaN,
+        0.9921875,
+        0.8828125,
+        0.328125
+      ],
+      "bracket": [
+        "bracketed",
+        "bracketed",
+        "bracketed",
+        "bracketed",
+        "no_margin",
+        "bracketed",
+        "bracketed",
+        "bracketed"
+      ],
+      "n_solves": 64,
+      "n_control_fail": 1
+    },
+    "design": {
+      "t_f": [
+        1.04,
+        3.9,
+        7.0200000000000005,
+        9.88,
+        13.0,
+        16.12,
+        18.98,
+        22.099999999999998
+      ],
+      "eta_star": [
+        0.375,
+        NaN,
+        0.9375,
+        1.0,
+        1.0,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "bracket": [
+        "bracketed",
+        "no_margin",
+        "bracketed",
+        "bracketed",
+        "bracketed",
+        "no_margin",
+        "no_margin",
+        "no_margin"
+      ],
+      "n_solves": 40,
+      "n_control_fail": 4
+    },
+    "eta_sat": 0.2782054840142096
+  },
+  "D3": {
+    "derated": {
+      "n": 96,
+      "n_land": 13,
+      "p": 0.13541666666666666,
+      "lo": 0.08087629796762788,
+      "hi": 0.21801314290671706,
+      "breakdown": {
+        "land": 13,
+        "gate_miss": 1,
+        "no_replan": 60,
+        "lost_in_delay": 22
+      }
+    },
+    "design": {
+      "n": 32,
+      "n_land": 3,
+      "p": 0.09375,
+      "lo": 0.032400962626319516,
+      "hi": 0.24218499335778831,
+      "breakdown": {
+        "land": 3,
+        "no_replan": 17,
+        "lost_in_delay": 12
+      }
+    }
+  },
+  "monotonicity": {
+    "derated": {
+      "n": 96,
+      "comparable_pairs": 200,
+      "violations": 1,
+      "t_tol": 2.0
+    },
+    "design": {
+      "n": 32,
+      "comparable_pairs": 31,
+      "violations": 0,
+      "t_tol": 2.0
+    }
+  },
+  "mechanism": {
+    "land": 57,
+    "gate_miss": 8,
+    "no_replan": 172,
+    "lost_in_delay": 35
+  },
+  "n_fault_solves": 272,
+  "E": {
+    "n": 220,
+    "n_nom_land": 215,
+    "p_nom": 0.9772727272727273,
+    "lo_nom": 0.94790916405021,
+    "hi_nom": 0.9902542515079347,
+    "n_fault_ok": 44,
+    "n_fault_run": 215,
+    "p_fault": 0.20465116279069767,
+    "lo_fault": 0.15613132929185236,
+    "hi_fault": 0.2635402505174709,
+    "surrogate_volume": 0.22893806955551424,
+    "surrogate_lo": 0.22704535402095508,
+    "surrogate_hi": 0.23084185116787856,
+    "surrogate_target": "fault survival",
+    "cv_accuracy": 0.758139534883721,
+    "auc": 0.8224416433239963,
+    "importance": {
+      "eta": 0.1793023255813954,
+      "t_f": 0.039999999999999994,
+      "x_E": 0.0065116279069767245,
+      "y_E": 0.0032558139534883622,
+      "phi": 0.003023255813953479,
+      "tau_d": 0.0,
+      "r": 0.0,
+      "q": 0.0,
+      "p": 0.0,
+      "psi": 0.0,
+      "theta": 0.0,
+      "w": 0.0,
+      "v": 0.0,
+      "u": 0.0,
+      "alt": 0.0
+    },
+    "outcome": {
+      "healthy plan infeasible": 5,
+      "lands": 44,
+      "no recovery trajectory": 160,
+      "lost during reaction delay": 11
+    }
+  }
+}

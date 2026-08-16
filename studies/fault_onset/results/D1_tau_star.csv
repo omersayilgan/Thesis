@@ -1,0 +1,17 @@
+bracket,eta,kind,n_solves,outcome_lo,part,profile,t_f,tau_star
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,16.12,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,1.04,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,9.88,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,3.9,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,13.0,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,18.98,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,22.099999999999998,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,design,7.0200000000000005,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,21.0,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,26.04,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,35.699999999999996,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,15.96,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,30.66,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,1.68,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,11.34,0.0
+unrecoverable,0.0,engine_out,1,no_replan,D1,derated,6.3,0.0

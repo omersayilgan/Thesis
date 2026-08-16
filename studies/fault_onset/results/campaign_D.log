@@ -1,0 +1,195 @@
+
+== D1: critical reaction delay vs onset time (engine-out) ==
+  [D1] 1/16  136s elapsed
+  [D1] 2/16  185s elapsed
+  [D1] 3/16  200s elapsed
+  [D1] 4/16  227s elapsed
+  [D1] 5/16  239s elapsed
+  [D1] 6/16  247s elapsed
+  [D1] 7/16  256s elapsed
+  [D1] 8/16  298s elapsed
+  [D1] 9/16  389s elapsed
+  [D1] 10/16  390s elapsed
+  [D1] 11/16  436s elapsed
+  [D1] 12/16  452s elapsed
+  [D1] 13/16  456s elapsed
+  [D1] 14/16  467s elapsed
+  [D1] 15/16  537s elapsed
+  [D1] 16/16  595s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D1_tau_star.csv  (16 rows)
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D1_samples.csv  (16 rows)
+
+== D2: critical reaction delay vs severity ==
+  [D2] 1/16  147s elapsed
+  [D2] 2/16  162s elapsed
+  [D2] 3/16  179s elapsed
+  [D2] 4/16  182s elapsed
+  [D2] 5/16  236s elapsed
+  [D2] 6/16  327s elapsed
+  [D2] 7/16  345s elapsed
+  [D2] 8/16  360s elapsed
+  [D2] 9/16  471s elapsed
+  [D2] 10/16  540s elapsed
+  [D2] 11/16  560s elapsed
+  [D2] 12/16  595s elapsed
+  [D2] 13/16  602s elapsed
+  [D2] 14/16  768s elapsed
+  [D2] 15/16  884s elapsed
+  [D2] 16/16  1070s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D2_tau_star.csv  (16 rows)
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D2_samples.csv  (24 rows)
+
+== D5: critical severity vs onset time ==
+  [D5] 1/16  167s elapsed
+  [D5] 2/16  196s elapsed
+  [D5] 3/16  299s elapsed
+  [D5] 4/16  305s elapsed
+  [D5] 5/16  1214s elapsed
+  [D5] 6/16  1309s elapsed
+  [D5] 7/16  1457s elapsed
+  [D5] 8/16  1508s elapsed
+  [D5] 9/16  1753s elapsed
+  [D5] 10/16  1974s elapsed
+  [D5] 11/16  2065s elapsed
+  [D5] 12/16  2097s elapsed
+  [D5] 13/16  2228s elapsed
+  [D5] 14/16  2268s elapsed
+  [D5] 15/16  2275s elapsed
+  [D5] 16/16  2286s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D5_eta_star.csv  (16 rows)
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D5_samples.csv  (104 rows)
+
+== D3: Sobol coverage of (t_f, eta, tau_d) ==
+/home/omersayilgan/anaconda3/lib/python3.12/site-packages/scipy/stats/_qmc.py:958: UserWarning: The balance properties of Sobol' points require n to be a power of 2.
+  sample = self._random(n, workers=workers)
+  [D3] 1/128  6s elapsed
+  [D3] 2/128  6s elapsed
+  [D3] 3/128  25s elapsed
+  [D3] 4/128  65s elapsed
+  [D3] 5/128  65s elapsed
+  [D3] 6/128  66s elapsed
+  [D3] 7/128  92s elapsed
+  [D3] 8/128  95s elapsed
+  [D3] 9/128  122s elapsed
+  [D3] 10/128  136s elapsed
+  [D3] 11/128  148s elapsed
+  [D3] 12/128  167s elapsed
+  [D3] 13/128  168s elapsed
+  [D3] 14/128  170s elapsed
+  [D3] 15/128  176s elapsed
+  [D3] 16/128  176s elapsed
+  [D3] 17/128  185s elapsed
+  [D3] 18/128  219s elapsed
+  [D3] 19/128  256s elapsed
+  [D3] 20/128  256s elapsed
+  [D3] 21/128  270s elapsed
+  [D3] 22/128  271s elapsed
+  [D3] 23/128  284s elapsed
+  [D3] 24/128  285s elapsed
+  [D3] 25/128  296s elapsed
+  [D3] 26/128  324s elapsed
+  [D3] 27/128  389s elapsed
+  [D3] 28/128  390s elapsed
+  [D3] 29/128  395s elapsed
+  [D3] 30/128  396s elapsed
+  [D3] 31/128  403s elapsed
+  [D3] 32/128  420s elapsed
+  [D3] 33/128  434s elapsed
+  [D3] 34/128  463s elapsed
+  [D3] 35/128  463s elapsed
+  [D3] 36/128  469s elapsed
+  [D3] 37/128  478s elapsed
+  [D3] 38/128  506s elapsed
+  [D3] 39/128  506s elapsed
+  [D3] 40/128  507s elapsed
+  [D3] 41/128  515s elapsed
+  [D3] 42/128  515s elapsed
+  [D3] 43/128  523s elapsed
+  [D3] 44/128  542s elapsed
+  [D3] 45/128  547s elapsed
+  [D3] 46/128  548s elapsed
+  [D3] 47/128  562s elapsed
+  [D3] 48/128  591s elapsed
+  [D3] 49/128  592s elapsed
+  [D3] 50/128  592s elapsed
+  [D3] 51/128  626s elapsed
+  [D3] 52/128  641s elapsed
+  [D3] 53/128  641s elapsed
+  [D3] 54/128  646s elapsed
+  [D3] 55/128  647s elapsed
+  [D3] 56/128  647s elapsed
+  [D3] 57/128  660s elapsed
+  [D3] 58/128  691s elapsed
+  [D3] 59/128  692s elapsed
+  [D3] 60/128  713s elapsed
+  [D3] 61/128  719s elapsed
+  [D3] 62/128  720s elapsed
+  [D3] 63/128  736s elapsed
+  [D3] 64/128  744s elapsed
+  [D3] 65/128  771s elapsed
+  [D3] 66/128  775s elapsed
+  [D3] 67/128  779s elapsed
+  [D3] 68/128  800s elapsed
+  [D3] 69/128  811s elapsed
+  [D3] 70/128  815s elapsed
+  [D3] 71/128  815s elapsed
+  [D3] 72/128  855s elapsed
+  [D3] 73/128  873s elapsed
+  [D3] 74/128  874s elapsed
+  [D3] 75/128  895s elapsed
+  [D3] 76/128  903s elapsed
+  [D3] 77/128  908s elapsed
+  [D3] 78/128  908s elapsed
+  [D3] 79/128  922s elapsed
+  [D3] 80/128  941s elapsed
+  [D3] 81/128  954s elapsed
+  [D3] 82/128  958s elapsed
+  [D3] 83/128  986s elapsed
+  [D3] 84/128  998s elapsed
+  [D3] 85/128  1011s elapsed
+  [D3] 86/128  1028s elapsed
+  [D3] 87/128  1035s elapsed
+  [D3] 88/128  1036s elapsed
+  [D3] 89/128  1045s elapsed
+  [D3] 90/128  1062s elapsed
+  [D3] 91/128  1077s elapsed
+  [D3] 92/128  1082s elapsed
+  [D3] 93/128  1091s elapsed
+  [D3] 94/128  1091s elapsed
+  [D3] 95/128  1091s elapsed
+  [D3] 96/128  1098s elapsed
+  [D3] 97/128  1099s elapsed
+  [D3] 98/128  1099s elapsed
+  [D3] 99/128  1137s elapsed
+  [D3] 100/128  1137s elapsed
+  [D3] 101/128  1146s elapsed
+  [D3] 102/128  1147s elapsed
+  [D3] 103/128  1170s elapsed
+  [D3] 104/128  1180s elapsed
+  [D3] 105/128  1180s elapsed
+  [D3] 106/128  1200s elapsed
+  [D3] 107/128  1213s elapsed
+  [D3] 108/128  1213s elapsed
+  [D3] 109/128  1241s elapsed
+  [D3] 110/128  1249s elapsed
+  [D3] 111/128  1271s elapsed
+  [D3] 112/128  1272s elapsed
+  [D3] 113/128  1272s elapsed
+  [D3] 114/128  1272s elapsed
+  [D3] 115/128  1281s elapsed
+  [D3] 116/128  1281s elapsed
+  [D3] 117/128  1282s elapsed
+  [D3] 118/128  1282s elapsed
+  [D3] 119/128  1293s elapsed
+  [D3] 120/128  1298s elapsed
+  [D3] 121/128  1301s elapsed
+  [D3] 122/128  1331s elapsed
+  [D3] 123/128  1331s elapsed
+  [D3] 124/128  1333s elapsed
+  [D3] 125/128  1335s elapsed
+  [D3] 126/128  1378s elapsed
+  [D3] 127/128  1379s elapsed
+  [D3] 128/128  1521s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/Python/fault_onset_study/results/D3_samples.csv  (128 rows)
+
+Study D complete.

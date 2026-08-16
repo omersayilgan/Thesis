@@ -1,0 +1,17 @@
+bracket,eta_lower,eta_star,kind,n_solves,part,profile,t_f,tau_d
+no_margin,,nan,efficiency,1,D5,design,3.9,0.1
+no_margin,,nan,efficiency,1,D5,design,16.12,0.1
+no_margin,,nan,efficiency,1,D5,design,22.099999999999998,0.1
+no_margin,,nan,efficiency,1,D5,design,18.98,0.1
+bracketed,0.9921875,1.0,efficiency,9,D5,design,13.0,0.1
+bracketed,0.3671875,0.375,efficiency,9,D5,design,1.04,0.1
+bracketed,0.9296875,0.9375,efficiency,9,D5,design,7.0200000000000005,0.1
+no_margin,,nan,efficiency,1,D5,derated,21.0,0.1
+bracketed,0.9921875,1.0,efficiency,9,D5,design,9.88,0.1
+bracketed,0.28125,0.2890625,efficiency,9,D5,derated,1.68,0.1
+bracketed,0.515625,0.5234375,efficiency,9,D5,derated,6.3,0.1
+bracketed,0.875,0.8828125,efficiency,9,D5,derated,30.66,0.1
+bracketed,0.3203125,0.328125,efficiency,9,D5,derated,35.699999999999996,0.1
+bracketed,0.8671875,0.875,efficiency,9,D5,derated,11.34,0.1
+bracketed,0.828125,0.8359375,efficiency,9,D5,derated,15.96,0.1
+bracketed,0.984375,0.9921875,efficiency,9,D5,derated,26.04,0.1

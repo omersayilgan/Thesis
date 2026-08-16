@@ -1,0 +1,17 @@
+bracket,eta,kind,n_solves,outcome_lo,part,profile,t_f,tau_star,tau_upper
+unrecoverable,0.75,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.35,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.45,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.6,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.28,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.9,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.75,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.6,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.45,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.2,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.35,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.28,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.1,efficiency,1,no_replan,D2,design,8.06,0.0,
+unrecoverable,0.2,efficiency,1,no_replan,D2,derated,13.02,0.0,
+unrecoverable,0.1,efficiency,1,no_replan,D2,derated,13.02,0.0,
+bracketed,0.9,efficiency,9,land,D2,derated,13.02,0.640625,0.65625
