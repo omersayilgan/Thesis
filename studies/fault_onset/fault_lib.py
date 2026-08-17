@@ -218,7 +218,41 @@ def _corridor(x0_val, nom_bound, k, n_relax, allow=1.0):
     return start + lam * (nom_bound - start)
 
 
-def substep(x, u, dt, lm, n_sub, step):
+def delayed_controls(us, x0, lm, nu):
+    """Per-node effective control, honouring per-engine transport delay.
+
+    A dead time of d control intervals means engine i at node k responds to the
+    command issued at node k-d (framework §2.6).  On a zero-order-hold grid that
+    shift is *exact*, not a Pade approximation — the price is that the delay can
+    only be a whole number of intervals.
+
+    For k < d the pipe is primed with the engine's own initial actuator state:
+    whatever it is currently holding is, by definition, what was last commanded
+    to it.  Returns a function k -> control vector; with no delayed engine it is
+    just `us[k]`, and the graph is unchanged.
+    """
+    delays = {i: lm.u_delay_of(i) for i in range(lm.n_eng)
+              if lm.u_delay_of(i) > 0}
+    if not delays:
+        return lambda k: us[k]
+
+    prime = {}
+    for i, d in delays.items():
+        prime[IDX_U_T[i]]  = float(x0[IDX_T[i]])
+        prime[IDX_U_DP[i]] = float(x0[IDX_DP[i]])
+        prime[IDX_U_DY[i]] = float(x0[IDX_DY[i]])
+
+    def u_at(k):
+        rows = [us[k][j] for j in range(nu)]
+        for i, d in delays.items():
+            for j in (IDX_U_T[i], IDX_U_DP[i], IDX_U_DY[i]):
+                rows[j] = us[k - d][j] if k - d >= 0 else prime[j]
+        return ca.vertcat(*rows)
+
+    return u_at
+
+
+def substep(x, u, dt, lm, n_sub, step, t=0.0):
     """Integrate one control interval with n_sub RK4 sub-steps.
 
     The control grid and the decision variables are unchanged — only the
@@ -236,8 +270,8 @@ def substep(x, u, dt, lm, n_sub, step):
     wn*dt_sub = 1.0 comfortably inside the stability region.
     """
     h = dt / n_sub
-    for _ in range(n_sub):
-        x = step(x, u, h, lm)
+    for j in range(n_sub):
+        x = step(x, u, h, lm, t + j * h)
     return x
 
 
@@ -266,6 +300,14 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
     x0 = np.asarray(x0_aug, float).copy()
     for i in failed:                       # a dead engine holds nothing
         x0[[IDX_T[i], IDX_DP[i], IDX_DPD[i], IDX_DY[i], IDX_DYD[i]]] = 0.0
+    for i in range(lm.n_eng):
+        # A seized gimbal is frozen, not coasting: the seizure arrests the
+        # motion, so the rate states are zero from the fault onward and the
+        # deflection stays exactly where it was caught.  Zeroing them here
+        # rather than damping them in the dynamics keeps the freeze exact and
+        # keeps the integrator stable (see flat_moon_6dof).
+        if lm.gimbal_locked(i):
+            x0[[IDX_DPD[i], IDX_DYD[i]]] = 0.0
 
     x_targ = np.zeros(nx)
     x_targ[2] = -cfg.h_contact
@@ -284,9 +326,16 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
     opti.subject_to(Xv[:, 0] == x0 / Sx)
 
     step = af.INTEGRATORS[cfg.integrator]
+    # `u_at` folds in any per-engine transport delay; `t_k` carries trajectory
+    # time into the dynamics so time-varying faults (parametric drift, forced
+    # oscillation) evolve along the horizon instead of being frozen at t = 0.
+    # Both reduce to the identity on a healthy plant.
+    u_at = delayed_controls(us, x0, lm, nu)
     for k in range(N):
-        xn = (step(xs[k], us[k], cfg.dt, lm) if n_sub <= 1 else
-              substep(xs[k], us[k], cfg.dt, lm, n_sub, step))
+        t_k = k * cfg.dt
+        uk = u_at(k)
+        xn = (step(xs[k], uk, cfg.dt, lm, t_k) if n_sub <= 1 else
+              substep(xs[k], uk, cfg.dt, lm, n_sub, step, t_k))
         opti.subject_to(Xv[:, k+1] == xn / Sx_dm)
 
     tan2 = np.tan(cfg.glide_slope) ** 2
@@ -325,7 +374,7 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
                     opti.subject_to(Xv[j, k] == 0.0)
                 continue
             jt = IDX_T[i]
-            opti.subject_to(opti.bounded(lm.T_min_eng / Sx[jt], Xv[jt, k],
+            opti.subject_to(opti.bounded(lm.T_min_of(i) / Sx[jt], Xv[jt, k],
                                          lm.T_max_eng / Sx[jt]))
             for j in (IDX_DP[i], IDX_DY[i]):
                 opti.subject_to(opti.bounded(-lm.gimbal_max / Sx[j], Xv[j, k],
@@ -338,7 +387,7 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
                     opti.subject_to(Uv[j, k] == 0.0)
                 continue
             jt = IDX_U_T[i]
-            opti.subject_to(opti.bounded(lm.T_min_eng / Su[jt], Uv[jt, k],
+            opti.subject_to(opti.bounded(lm.T_min_of(i) / Su[jt], Uv[jt, k],
                                          lm.T_max_eng / Su[jt]))
             for j in (IDX_U_DP[i], IDX_U_DY[i]):
                 opti.subject_to(opti.bounded(-lm.gimbal_max / Su[j], Uv[j, k],
@@ -425,14 +474,18 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
 #  5. PROPAGATION HELPERS
 # ══════════════════════════════════════════════════════════════════════
 
-def propagate(x, u, T, lm, dt=0.02):
-    """Integrate the 22-state forward by T seconds holding u (zero-order hold)."""
+def propagate(x, u, T, lm, dt=0.02, t0=0.0):
+    """Integrate the 22-state forward by T seconds holding u (zero-order hold).
+
+    t0 is the trajectory time at the start of the interval, which only matters
+    for time-varying faults; it defaults to 0 so every existing call site is
+    unchanged."""
     x = np.asarray(x, float).copy()
     u = ca.DM(np.asarray(u, float))
     n = max(int(round(T / dt)), 0)
     h = T / n if n else 0.0
-    for _ in range(n):
-        x = np.array(af.rk4_step(ca.DM(x), u, h, lm)).ravel()
+    for j in range(n):
+        x = np.array(af.rk4_step(ca.DM(x), u, h, lm, t0 + j * h)).ravel()
         if not np.all(np.isfinite(x)):
             break
     return x

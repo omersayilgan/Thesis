@@ -94,14 +94,85 @@ class LMParams:
     gimbal_wn_eng:   dict = field(default_factory=dict)
     gimbal_zeta_eng: dict = field(default_factory=dict)
 
+    # ── Extended fault parameters ────────────────────────────────────────
+    # One field per dynamic-effect category of
+    # docs/spacecraft_engine_fault_framework.md, so that a fault in the
+    # catalogue can be instantiated as a *plant* rather than described in
+    # prose.  All are keyed by engine index; absent means "healthy".
+    #
+    #   tau_T_eng        §2.5  slower thrust response      multiplicative ΔA
+    #   T_min_eng_ovr    §2.2  valve stuck open (floor)    structural (input set)
+    #   gimbal_eff_eng   §2.7  TVC effectiveness loss      multiplicative ΔB
+    #   gimbal_bias_eng  §2.7  thrust-vector misalignment  additive E·f_a
+    #   gimbal_lock_eng  §1.7  gimbal bearing seizure      structural
+    #   thrust_osc_eng   §2.3  chugging / forced ripple    additive E·f_a(t)
+    #   eta_rate_eng     §2.10 throat erosion drift        time-varying mult.
+    #   u_delay_eng      §2.6  transport delay             structural (ZOH shift)
+    #
+    # Only the first six act inside the dynamics; eta_rate_eng needs the time
+    # argument threaded through the integrator (it is), and u_delay_eng is a
+    # property of the *discretisation* and is honoured by the OCP builder that
+    # owns the control grid, not by flat_moon_6dof.
+    tau_T_eng:       dict = field(default_factory=dict)   # [s]
+    T_min_eng_ovr:   dict = field(default_factory=dict)   # [N]
+    gimbal_eff_eng:  dict = field(default_factory=dict)   # [-] in (0, 1]
+    gimbal_bias_eng: dict = field(default_factory=dict)   # (dp, dy) [rad]
+    gimbal_lock_eng: dict = field(default_factory=dict)   # {i: True}
+    thrust_osc_eng:  dict = field(default_factory=dict)   # {i: (amp_frac, w)}
+    eta_rate_eng:    dict = field(default_factory=dict)   # {i: d(eta)/dt [1/s]}
+    u_delay_eng:     dict = field(default_factory=dict)   # {i: n_intervals}
+
     # RCS  —  4 quads, 4 thrusters each = 16 thrusters
     F_rcs_per: float = 445.0     # max thrust per single thruster  [N]
     n_quads:   int   = 4
     rcs_arm:   float = 1.7       # quad radius from centreline (x-y plane) [m]
 
-    def eta_of(self, i):
-        """Thrust efficiency of engine i — delivered force / internal thrust."""
-        return self.thrust_eff_eng.get(i, 1.0)
+    def eta_of(self, i, t=0.0):
+        """Thrust efficiency of engine i — delivered force / internal thrust.
+
+        With eta_rate_eng set, efficiency *drifts*: eta(t) = eta0 + rate*t,
+        floored at zero and capped at the undrifted value's own ceiling.  t is
+        measured from the start of the trajectory being integrated (framework
+        §2.10 — the engine at ignition is not the engine 300 s into the burn).
+        """
+        eta = self.thrust_eff_eng.get(i, 1.0)
+        rate = self.eta_rate_eng.get(i, 0.0)
+        if rate:
+            eta = eta + rate * t
+            eta = eta if eta > 0.0 else 0.0
+        return eta
+
+    def tau_T_of(self, i):
+        """Thrust first-order lag of engine i  [s]."""
+        return self.tau_T_eng.get(i, self.tau_T)
+
+    def T_min_of(self, i):
+        """Lowest thrust engine i can be held at  [N].  Above the nominal
+        floor this is a valve stuck (partly) open: the engine cannot be
+        throttled down past it, so the vehicle carries thrust it did not ask
+        for and must trim the resulting moment."""
+        return self.T_min_eng_ovr.get(i, self.T_min_eng)
+
+    def gimbal_eff_of(self, i):
+        """Fraction of the commanded gimbal deflection the actuator delivers."""
+        return self.gimbal_eff_eng.get(i, 1.0)
+
+    def gimbal_bias_of(self, i):
+        """Static (dp, dy) misalignment of engine i's thrust axis  [rad].
+        Independent of command — the additive half of framework §4.6."""
+        return self.gimbal_bias_eng.get(i, (0.0, 0.0))
+
+    def gimbal_locked(self, i):
+        """True if engine i's gimbal is seized at its current deflection."""
+        return bool(self.gimbal_lock_eng.get(i, False))
+
+    def thrust_osc_of(self, i):
+        """(amplitude fraction of hover share, angular frequency [rad/s])."""
+        return self.thrust_osc_eng.get(i, (0.0, 0.0))
+
+    def u_delay_of(self, i):
+        """Transport delay on engine i's commands, in whole control intervals."""
+        return int(self.u_delay_eng.get(i, 0))
 
     def thrust_is_degraded(self, i):
         """True if engine i delivers less force than its thrust state."""
@@ -270,7 +341,15 @@ class Scenario:
 # ══════════════════════════════════════════════════════════════════════
 
 
-def flat_moon_6dof(x, u, lm):
+def flat_moon_6dof(x, u, lm, t=0.0):
+    """Right-hand side of the 22-state model.
+
+    `t` is the time since the start of the trajectory being integrated.  It is
+    only read by the *time-varying* fault parameters (parametric drift, forced
+    thrust oscillation); with a healthy plant the dynamics are autonomous and
+    the argument is inert, which is why every legacy call site can keep passing
+    three arguments.
+    """
     ub, vb, wb  = x[3], x[4], x[5]
     phi, th, ps = x[6], x[7], x[8]
     p, q, r     = x[9], x[10], x[11]
@@ -304,11 +383,27 @@ def flat_moon_6dof(x, u, lm):
         # only eta of the internal thrust becomes force; the rest is lost power.
         # The actuator dynamics below still act on the full T_, so the engine
         # burns propellant for T_ while the vehicle only feels T_eff.
-        T_eff = lm.eta_of(i) * T_
+        #
+        # eta is evaluated at t, so a drifting engine (§2.10) loses authority as
+        # the flight proceeds.  The oscillation term is *additive*: a chugging
+        # engine ripples by the same absolute amount whatever the throttle
+        # setting, which is precisely the framework's test for an additive
+        # fault (§4.1) and is what distinguishes it from an efficiency loss.
+        T_eff = lm.eta_of(i, t) * T_
+        a_osc, w_osc = lm.thrust_osc_of(i)
+        if a_osc:
+            T_eff = T_eff + a_osc * lm.T_hover_eng * ca.sin(w_osc * t)
 
-        Tx =  T_eff * ca.sin(dp)
-        Ty = -T_eff * ca.sin(dy) * ca.cos(dp)
-        Tz = -T_eff * ca.cos(dp) * ca.cos(dy)
+        # static thrust-axis misalignment: the gimbal *state* is dp, but the
+        # thrust leaves along dp + bias.  No command can null it out of the
+        # dynamics — the planner can only aim the sum somewhere useful.
+        bp, by = lm.gimbal_bias_of(i)
+        dp_f = dp + bp if bp else dp
+        dy_f = dy + by if by else dy
+
+        Tx =  T_eff * ca.sin(dp_f)
+        Ty = -T_eff * ca.sin(dy_f) * ca.cos(dp_f)
+        Tz = -T_eff * ca.cos(dp_f) * ca.cos(dy_f)
 
         Fx += Tx;  Fy += Ty;  Fz += Tz
 
@@ -320,12 +415,28 @@ def flat_moon_6dof(x, u, lm):
 
         # ── actuator dynamics ──
         # thrust: first order      Tdot = (T_cmd - T)/tau
-        Tdot = (T_cmd - T_) / lm.tau_T
-        # gimbals: second order     d̈ = wn^2 (cmd - d) - 2 zeta wn ḋ
-        # wn/zeta are per-engine, so one engine's actuator can be degraded
-        wn, z = lm.wn_of(i), lm.zeta_of(i)
-        dp_ddot = wn*wn * (dp_cmd - dp) - 2*z*wn * dp_dot
-        dy_ddot = wn*wn * (dy_cmd - dy) - 2*z*wn * dy_dot
+        # tau is per-engine: valve friction, seal swelling or coking all show up
+        # as a longer thrust time constant (§2.5) with the gain untouched
+        Tdot = (T_cmd - T_) / lm.tau_T_of(i)
+        # gimbals: second order     d̈ = wn^2 (g*cmd - d) - 2 zeta wn ḋ
+        # wn/zeta are per-engine, so one engine's actuator can be degraded, and
+        # g < 1 is TVC effectiveness loss — the loop still tracks, just not to
+        # where it was told (§4.6).  A seized gimbal drops the command term
+        # entirely and bleeds the residual rate, freezing the deflection.
+        if lm.gimbal_locked(i):
+            # A seized bearing arrests the gimbal: no command term, and no
+            # acceleration either.  The rate states are zeroed in the initial
+            # condition instead of being bled off dynamically (see
+            # fault_lib.solve_ocp) — a decay term fast enough to look like a
+            # seizure is far outside RK4's stability region on this grid, and
+            # would diverge rather than freeze.
+            dp_ddot = 0.0 * dp_dot
+            dy_ddot = 0.0 * dy_dot
+        else:
+            wn, z = lm.wn_of(i), lm.zeta_of(i)
+            g = lm.gimbal_eff_of(i)
+            dp_ddot = wn*wn * (g * dp_cmd - dp) - 2*z*wn * dp_dot
+            dy_ddot = wn*wn * (g * dy_cmd - dy) - 2*z*wn * dy_dot
         act_dot += [Tdot, dp_dot, dp_ddot, dy_dot, dy_ddot]
 
     C_EB = ca.vertcat(
@@ -350,20 +461,20 @@ def flat_moon_6dof(x, u, lm):
     return ca.vertcat(rdot, vdot, edot, pdot, qdot, rdot_w, *act_dot)
 
 
-def rk4_step(x, u, dt, lm):
-    k1 = flat_moon_6dof(x,             u, lm)
-    k2 = flat_moon_6dof(x + dt/2 * k1, u, lm)
-    k3 = flat_moon_6dof(x + dt/2 * k2, u, lm)
-    k4 = flat_moon_6dof(x + dt   * k3, u, lm)
+def rk4_step(x, u, dt, lm, t=0.0):
+    k1 = flat_moon_6dof(x,             u, lm, t)
+    k2 = flat_moon_6dof(x + dt/2 * k1, u, lm, t + dt/2)
+    k3 = flat_moon_6dof(x + dt/2 * k2, u, lm, t + dt/2)
+    k4 = flat_moon_6dof(x + dt   * k3, u, lm, t + dt)
     return x + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
 
 
-def rk2_step(x, u, dt, lm):
+def rk2_step(x, u, dt, lm, t=0.0):
     """Heun / explicit-trapezoid: 2 dynamics evals per step vs RK4's 4, so the
     per-step constraint graph (and its Jacobian/Hessian) is ~half the size.
     Second-order accurate — a good speed/accuracy trade at this dt."""
-    k1 = flat_moon_6dof(x,          u, lm)
-    k2 = flat_moon_6dof(x + dt * k1, u, lm)
+    k1 = flat_moon_6dof(x,           u, lm, t)
+    k2 = flat_moon_6dof(x + dt * k1, u, lm, t + dt)
     return x + dt/2 * (k1 + k2)
 
 
@@ -470,7 +581,8 @@ def solve_landing(lm, cfg, sc):
     # of the constraint Jacobian carries comparable magnitude.
     step = INTEGRATORS[cfg.integrator]
     for k in range(cfg.N):
-        opti.subject_to(Xv[:, k+1] == step(xs[k], us[k], cfg.dt, lm) / Sx_dm)
+        opti.subject_to(
+            Xv[:, k+1] == step(xs[k], us[k], cfg.dt, lm, k * cfg.dt) / Sx_dm)
 
     # glide slope: tan(g)*||(x,y)|| <= -z_E, squared to keep it differentiable
     # at the pad (the sqrt has a kink at the origin, exactly where the vehicle
@@ -511,7 +623,7 @@ def solve_landing(lm, cfg, sc):
                     opti.subject_to(Xv[j, k] == 0.0)
                 continue
             jt = IDX_T[i]
-            opti.subject_to(opti.bounded(lm.T_min_eng / Sx[jt], Xv[jt, k],
+            opti.subject_to(opti.bounded(lm.T_min_of(i) / Sx[jt], Xv[jt, k],
                                          lm.T_max_eng / Sx[jt]))
             for j in (IDX_DP[i], IDX_DY[i]):
                 opti.subject_to(opti.bounded(-lm.gimbal_max / Sx[j], Xv[j, k],
@@ -525,7 +637,7 @@ def solve_landing(lm, cfg, sc):
                     opti.subject_to(Uv[j, k] == 0.0)
                 continue
             jt = IDX_U_T[i]
-            opti.subject_to(opti.bounded(lm.T_min_eng / Su[jt], Uv[jt, k],
+            opti.subject_to(opti.bounded(lm.T_min_of(i) / Su[jt], Uv[jt, k],
                                          lm.T_max_eng / Su[jt]))
             for j in (IDX_U_DP[i], IDX_U_DY[i]):
                 opti.subject_to(opti.bounded(-lm.gimbal_max / Su[j], Uv[j, k],
@@ -623,6 +735,16 @@ def cutoff_freefall(x_contact, lm, dt=0.02, max_t=8.0):
     x = np.asarray(x_contact, dtype=float).copy()
     x[IDX_ACT_ALL] = 0.0            # hard cut-off of every engine, gimbals zeroed
     u0 = np.zeros(N_U_DPS + lm.n_rcs)                 # no DPS command, no RCS
+
+    # A cut engine cannot chug.  The forced-oscillation fault is additive in the
+    # dynamics — by construction independent of the operating point — so it
+    # would keep injecting thrust into a ballistic settle unless it is removed
+    # here.  Nothing else about the damaged plant changes: the vehicle falls as
+    # whatever it has become.
+    if lm.thrust_osc_eng:
+        import copy as _copy
+        lm = _copy.copy(lm)
+        lm.thrust_osc_eng = {}
 
     xs, ts, t = [x.copy()], [0.0], 0.0
     while x[2] < 0.0 and t < max_t:                   # z_E < 0  <=>  still airborne

@@ -19,6 +19,7 @@ studies/            One directory per investigation, each self-contained
   gimbal_degradation/     Gimbal bandwidth sweep     -> G1_*..G4_*
   thrust_efficiency/      Thrust efficiency sweep    -> E1_*..E6_*
   fault_onset/            Fault-onset campaigns D/E/F -> results/, figures/
+  fault_taxonomy/         16 framework faults x 4 IC regimes -> results/, figures/
   reliability/            Reliability vs T/W, RCS DOF analysis
 
 docs/               Thesis-level write-ups (.tex/.md sources + built .pdf)
@@ -37,6 +38,7 @@ python studies/engine_failure/run_case_study.py
 python studies/thrust_efficiency/run_efficiency_study.py
 python studies/gimbal_degradation/run_gimbal_study.py
 python studies/fault_onset/run_study_D.py       # then run_study_E.py, run_study_F.py
+python studies/fault_taxonomy/run_taxonomy_study.py   # then analyse.py, build_report.py
 python studies/actuation_envelopes/build_report.py
 ```
 
