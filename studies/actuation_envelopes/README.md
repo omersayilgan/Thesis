@@ -15,6 +15,9 @@ python build_report.py
 | `figures/<Spacecraft>.png` | 3 panels — actuator layout, achievable force set, achievable moment set |
 | `figures/_fleet_comparison.png` | best-vs-worst axis authority across the fleet |
 | `actuation_envelope_summary.xlsx` | `Max acceleration`, `Max force-moment`, `Provenance`, `Method` |
+| `acceleration_reference.pdf` | per-axis max accelerations by spacecraft class, with per-class typical values |
+| `acceleration_reference.csv` | the same numbers, machine-readable |
+| `figures/_acceleration_by_category.png` | class-by-class spread of axial linear and lateral angular acceleration |
 
 ## Files
 
@@ -24,7 +27,25 @@ python build_report.py
 | `vehicles.py` | per-vehicle dimensions, gimbal limits, layout choice, provenance flags |
 | `envelopes.py` | support functions, achievable sets, per-axis maxima |
 | `plots.py` | figures |
-| `build_report.py` | runner |
+| `build_report.py` | runner (figures + summary workbook) |
+| `build_acceleration_tables.py` | runner (acceleration reference PDF) |
+
+## Acceleration reference
+
+`build_acceleration_tables.py` answers "what can each class of spacecraft
+actually accelerate at": per-axis maximum linear and angular acceleration for
+every vehicle, grouped by class, with per-class typical values and a
+rule-of-thumb table.
+
+It draws a distinction the raw model does not — a **structural zero** (a single
+centreline gimballed engine genuinely cannot roll) versus a **data gap** (the
+workbook names the hardware but records no thrust). Four vehicles have gaps:
+GOES-16, GOES-19 and Sentinel-1A entirely, Juno on its RCS tier only. They are
+excluded per-quantity from the statistics rather than counted as zero.
+
+```bash
+python build_acceleration_tables.py   # -> acceleration_reference.pdf + .csv
+```
 
 ## The data gap you must know about
 

@@ -350,6 +350,8 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
     # velocity box and a hard bound at k = 1 would report "infeasible" for a
     # 0.001 m/s overshoot — a solver artefact, not a lost vehicle.
     v0 = float(np.abs(x0[3:6]).max())
+    vn0 = float(np.linalg.norm(x0[3:6]))
+    v_norm_max = getattr(cfg, 'V_norm_max', None)
     e0 = float(np.abs(x0[6:9]).max())
     w0 = float(np.abs(x0[9:12]).max())
     for k in range(1, N + 1):
@@ -359,6 +361,13 @@ def solve_ocp(lm, cfg, x0_aug, N, failed=(), max_iter=300, quiet=True,
         if 'vel' not in relax:
             for j in [3, 4, 5]:
                 opti.subject_to(opti.bounded(-vb / Sx[j], Xv[j, k], vb / Sx[j]))
+            if v_norm_max:
+                # spherical speed cap, when the scenario asks for one.  Given
+                # the same corridor treatment as the box: a post-fault state
+                # marginally over the limit must not read as infeasible.
+                vnb = _corridor(vn0, v_norm_max, k, n_relax, ALLOW['velocity'])
+                vv = xs[k][3:6] / Sx[3]          # axes 3-5 share one scale
+                opti.subject_to(ca.dot(vv, vv) <= (vnb / Sx[3]) ** 2)
         eb = _corridor(e0, cfg.euler_max, k, n_relax, ALLOW['attitude'])
         if 'att' not in relax:
             for j in [6, 7, 8]:

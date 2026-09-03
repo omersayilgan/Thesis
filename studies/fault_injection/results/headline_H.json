@@ -1,0 +1,693 @@
+{
+ "n_solves": 180,
+ "n_points": 15,
+ "n_faults": 12,
+ "faults": [
+  "healthy",
+  "tvc_bias",
+  "chugging",
+  "thrust_loss_50",
+  "thrust_loss_85",
+  "thrust_excess",
+  "slow_thrust",
+  "mixture_ratio",
+  "erosion_drift",
+  "valve_stuck_open",
+  "engine_out",
+  "dead_time"
+ ],
+ "times": [
+  0.0,
+  4.0,
+  8.0,
+  13.0,
+  17.0,
+  21.0,
+  25.0,
+  30.0,
+  34.0,
+  38.0,
+  42.0,
+  46.0,
+  51.0,
+  55.0,
+  59.0
+ ],
+ "alts": [
+  736.4545454545455,
+  665.8843124224463,
+  587.2765091311609,
+  495.1487237150771,
+  419.08185201377603,
+  350.31191945099016,
+  282.4549151778067,
+  211.89971928079592,
+  159.80179157123658,
+  109.00383724834768,
+  56.19745930050679,
+  19.15574425039258,
+  3.8072653166479418,
+  7.785311977454762,
+  1.5917432622180052
+ ],
+ "t_contact": 65.0,
+ "y_eng": 0.25,
+ "glide_deg": 12.0,
+ "v_norm": 60.0,
+ "nominal_margin": 0.6010167877268836,
+ "nominal_N": 68,
+ "anchor": {
+  "alt": 736.4545454545455,
+  "rng": 2724.0876879026487,
+  "v_h": 55.0,
+  "v_v": 15.640090909090912,
+  "los": 15.128214231799117,
+  "fpa": 15.87391200556578
+ },
+ "catalogue": {
+  "healthy": {
+   "label": "Healthy (control)",
+   "short": "healthy",
+   "section": "\u2014",
+   "structure": "none",
+   "klass": "none",
+   "temporal": "\u2014",
+   "detail": "nominal plant; measures what the injection point alone costs"
+  },
+  "tvc_bias": {
+   "label": "Thrust-vector misalignment (3\u00b0, 2\u00b0)",
+   "short": "TVC bias",
+   "section": "2.7",
+   "structure": "additive",
+   "klass": "additive",
+   "temporal": "incipient",
+   "detail": "asymmetric nozzle erosion leaves engine 2 pointing 3\u00b0 in pitch and 2\u00b0 in yaw off its commanded axis, independent of command"
+  },
+  "chugging": {
+   "label": "Thrust oscillation (chugging)",
+   "short": "chugging",
+   "section": "2.3",
+   "structure": "additive",
+   "klass": "additive",
+   "temporal": "intermittent / forced",
+   "detail": "feed-coupled instability: engine 2 thrust rings at 0.25 Hz with an amplitude of 20 % of its hover share, regardless of throttle"
+  },
+  "thrust_loss_50": {
+   "label": "Thrust reduction, $\\eta$=0.50",
+   "short": "$\\eta$=0.50",
+   "section": "2.1",
+   "structure": "multiplicative",
+   "klass": "multiplicative",
+   "temporal": "abrupt / incipient",
+   "detail": "engine 2 delivers half of its internal thrust (turbopump degradation, injector blockage, throat erosion)"
+  },
+  "thrust_loss_85": {
+   "label": "Thrust reduction, $\\eta$=0.15",
+   "short": "$\\eta$=0.15",
+   "section": "2.1",
+   "structure": "multiplicative",
+   "klass": "multiplicative",
+   "temporal": "abrupt",
+   "detail": "engine 2 delivers 15 % \u2014 near-total gain loss with the gimbal alive"
+  },
+  "thrust_excess": {
+   "label": "Thrust excess, $\\eta$=1.30",
+   "short": "$\\eta$=1.30",
+   "section": "2.2",
+   "structure": "multiplicative",
+   "klass": "multiplicative",
+   "temporal": "abrupt",
+   "detail": "pressurant regulator runaway: engine 2 delivers 130 % of commanded"
+  },
+  "slow_thrust": {
+   "label": "Slow thrust response, $\\tau_T$=2.5 s",
+   "short": "$\\tau_T$=2.5 s",
+   "section": "2.5",
+   "structure": "multiplicative",
+   "klass": "multiplicative",
+   "temporal": "incipient",
+   "detail": "engine 2 thrust lag grows from 0.4 s to 2.5 s (valve friction, coking, actuator supply loss) with the gain untouched"
+  },
+  "mixture_ratio": {
+   "label": "Mixture-ratio shift (coupled)",
+   "short": "mixture ratio",
+   "section": "2.4",
+   "structure": "multiplicative (coupled)",
+   "klass": "multiplicative",
+   "temporal": "incipient",
+   "detail": "oxidiser-side erosion on engine 2: gain falls to 0.75 *and* the combustion time constant grows to 1.2 s"
+  },
+  "erosion_drift": {
+   "label": "Throat-erosion drift",
+   "short": "erosion drift",
+   "section": "2.10",
+   "structure": "time-varying multiplicative",
+   "klass": "multiplicative",
+   "temporal": "incipient",
+   "detail": "engine 2 efficiency decays at 1.2 %/s from the moment of injection: healthy at onset, 0.52 forty seconds later"
+  },
+  "valve_stuck_open": {
+   "label": "Valve stuck open (thrust floor)",
+   "short": "stuck open",
+   "section": "2.2 / 1.4",
+   "structure": "structural",
+   "klass": "structural",
+   "temporal": "abrupt",
+   "detail": "engine 2 cannot be throttled below 8458 N (1.35x its hover share) \u2014 the input set itself is cut"
+  },
+  "engine_out": {
+   "label": "Engine out",
+   "short": "engine out",
+   "section": "2.1 / 3.1",
+   "structure": "structural",
+   "klass": "structural",
+   "temporal": "abrupt",
+   "detail": "engine 2 dead: thrust and both gimbals pinned to zero for the rest of the flight"
+  },
+  "dead_time": {
+   "label": "Transport delay (1 interval)",
+   "short": "dead time",
+   "section": "2.6",
+   "structure": "structural",
+   "klass": "structural",
+   "temporal": "abrupt / intermittent",
+   "detail": "a vapour pocket in engine 2's feed line delays every command by one full control interval (1 s)"
+  }
+ },
+ "rates": {
+  "healthy": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "tvc_bias": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "chugging": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "thrust_loss_50": {
+   "k": 14,
+   "n": 15,
+   "p": 0.9333333333333333,
+   "lo": 0.7018292244757601,
+   "hi": 0.9881334113938051
+  },
+  "thrust_loss_85": {
+   "k": 13,
+   "n": 15,
+   "p": 0.8666666666666667,
+   "lo": 0.6211750079348376,
+   "hi": 0.9626395301086407
+  },
+  "thrust_excess": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "slow_thrust": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "mixture_ratio": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "erosion_drift": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "valve_stuck_open": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "engine_out": {
+   "k": 11,
+   "n": 15,
+   "p": 0.7333333333333333,
+   "lo": 0.4804911034231324,
+   "hi": 0.8910272389681718
+  },
+  "dead_time": {
+   "k": 10,
+   "n": 15,
+   "p": 0.6666666666666666,
+   "lo": 0.41713125151212976,
+   "hi": 0.8482389930530876
+  }
+ },
+ "by_point": {
+  "0": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "1": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "2": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "3": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "4": {
+   "k": 11,
+   "n": 12,
+   "p": 0.9166666666666666,
+   "lo": 0.6461140782014047,
+   "hi": 0.9851352905492264
+  },
+  "5": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "6": {
+   "k": 11,
+   "n": 12,
+   "p": 0.9166666666666666,
+   "lo": 0.6461140782014047,
+   "hi": 0.9851352905492264
+  },
+  "7": {
+   "k": 11,
+   "n": 12,
+   "p": 0.9166666666666666,
+   "lo": 0.6461140782014047,
+   "hi": 0.9851352905492264
+  },
+  "8": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  },
+  "9": {
+   "k": 10,
+   "n": 12,
+   "p": 0.8333333333333334,
+   "lo": 0.5519636426153274,
+   "hi": 0.9530358523851776
+  },
+  "10": {
+   "k": 10,
+   "n": 12,
+   "p": 0.8333333333333334,
+   "lo": 0.5519636426153274,
+   "hi": 0.9530358523851776
+  },
+  "11": {
+   "k": 9,
+   "n": 12,
+   "p": 0.75,
+   "lo": 0.46768966087934005,
+   "hi": 0.9110599603710386
+  },
+  "12": {
+   "k": 11,
+   "n": 12,
+   "p": 0.9166666666666666,
+   "lo": 0.6461140782014047,
+   "hi": 0.9851352905492264
+  },
+  "13": {
+   "k": 11,
+   "n": 12,
+   "p": 0.9166666666666666,
+   "lo": 0.6461140782014047,
+   "hi": 0.9851352905492264
+  },
+  "14": {
+   "k": 12,
+   "n": 12,
+   "p": 1.0,
+   "lo": 0.7574992425007574,
+   "hi": 1.0
+  }
+ },
+ "by_class": {
+  "none": {
+   "k": 15,
+   "n": 15,
+   "p": 1.0,
+   "lo": 0.7961107336956521,
+   "hi": 1.0
+  },
+  "additive": {
+   "k": 30,
+   "n": 30,
+   "p": 1.0,
+   "lo": 0.8864829086095221,
+   "hi": 1.0
+  },
+  "multiplicative": {
+   "k": 87,
+   "n": 90,
+   "p": 0.9666666666666667,
+   "lo": 0.9065255864388708,
+   "hi": 0.9885998163675604
+  },
+  "structural": {
+   "k": 36,
+   "n": 45,
+   "p": 0.8,
+   "lo": 0.6617674868607056,
+   "hi": 0.8910399559749099
+  }
+ },
+ "cells": {
+  "healthy": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "tvc_bias": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "chugging": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "thrust_loss_50": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "no_recovery",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "thrust_loss_85": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "no_recovery",
+   "11": "no_recovery",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "thrust_excess": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "slow_thrust": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "mixture_ratio": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "erosion_drift": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "valve_stuck_open": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "land",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "land",
+   "14": "land"
+  },
+  "engine_out": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "land",
+   "5": "land",
+   "6": "land",
+   "7": "land",
+   "8": "land",
+   "9": "gate_miss",
+   "10": "no_recovery",
+   "11": "no_recovery",
+   "12": "no_recovery",
+   "13": "land",
+   "14": "land"
+  },
+  "dead_time": {
+   "0": "land",
+   "1": "land",
+   "2": "land",
+   "3": "land",
+   "4": "no_recovery",
+   "5": "land",
+   "6": "no_recovery",
+   "7": "no_recovery",
+   "8": "land",
+   "9": "no_recovery",
+   "10": "land",
+   "11": "land",
+   "12": "land",
+   "13": "no_recovery",
+   "14": "land"
+  }
+ },
+ "survive_to": {
+  "healthy": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "tvc_bias": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "chugging": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "thrust_loss_50": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": 46.0,
+   "first_fail_alt": 19.15574425039258,
+   "n_land": 14
+  },
+  "thrust_loss_85": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": 42.0,
+   "first_fail_alt": 56.19745930050679,
+   "n_land": 13
+  },
+  "thrust_excess": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "slow_thrust": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "mixture_ratio": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "erosion_drift": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "valve_stuck_open": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": null,
+   "first_fail_alt": null,
+   "n_land": 15
+  },
+  "engine_out": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": 38.0,
+   "first_fail_alt": 109.00383724834768,
+   "n_land": 11
+  },
+  "dead_time": {
+   "last_land_t": 59.0,
+   "last_land_alt": 1.5917432622180052,
+   "first_fail_t": 17.0,
+   "first_fail_alt": 419.08185201377603,
+   "n_land": 10
+  }
+ },
+ "wall_hours": 1.30264845556683
+}

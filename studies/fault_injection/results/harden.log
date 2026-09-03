@@ -1,0 +1,18 @@
+11 of 180 rows recorded no_recovery; retrying each with 6 seeds at 1200 iterations
+  [harden] 1/11  71s elapsed
+  [harden] 2/11  122s elapsed
+  [harden] 3/11  148s elapsed
+  [harden] 4/11  170s elapsed
+  [harden] 5/11  244s elapsed
+  [harden] 6/11  293s elapsed
+  [harden] 7/11  311s elapsed
+  [harden] 8/11  600s elapsed
+  [harden] 9/11  672s elapsed
+  [harden] 10/11  750s elapsed
+  [harden] 11/11  783s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/results/H_samples.csv  (180 rows)
+
+0 of 11 flipped once searched harder:
+
+11 remained infeasible across all 6 seeds.
+[saved] H_samples.csv (previous version kept as H_samples_prehardening.csv)

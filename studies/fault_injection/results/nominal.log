@@ -1,0 +1,18 @@
+Apollo approach-phase anchor
+  altitude           736.5 m   (2416 ft)
+  range to pad      2724.1 m   (8937 ft)
+  horizontal          55.0 m/s (180 ft/s)
+  descent rate        15.6 m/s (51 ft/s)
+  LOS depression     15.13 deg
+  flight-path        15.87 deg   (agree to 0.75 deg)
+
+Vehicle: y_eng = 0.25 m, roll-trim limit 0.263 m -> engine-out is TRIMMABLE
+Problem: 80 x 1 s horizon, 12 deg glide cone
+
+probe: contact at 66 s -> re-solving on a 68 s horizon
+
+nominal converged in 456 iterations, 29 s
+  contact at t = 65 s, touchdown margin 0.60 -> LANDS
+  v_vert 1.80 m/s, v_horiz 0.00 m/s, tilt 0.00 deg, 0.0 m from the pad
+
+[saved] /home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/results/nominal.npz

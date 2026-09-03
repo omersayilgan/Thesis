@@ -269,6 +269,15 @@ class OCPConfig:
                                      # cheaper per step but tends to need more IPOPT
                                      # iterations here, so rk4 is faster end-to-end.
     V_max:     float = 60.0                  # translational velocity limit  [m/s]
+    # Optional limit on the *norm* of the body velocity.  V_max above is a
+    # per-axis box, so a vehicle riding it on two axes reaches 85 m/s and on
+    # three 104 m/s.  That is harmless for a near-vertical descent, where only
+    # w is large, but on a long shallow approach it lets the optimiser
+    # accelerate downrange far past anything a lunar descent flies, rush the
+    # pad, overshoot and come back.  Set it (e.g. 60.0) to make the speed limit
+    # spherical instead of cubical; None leaves the original behaviour, so
+    # every earlier study is unaffected.
+    V_norm_max: float = None
     euler_max: float = np.deg2rad(45.0)      # roll/pitch/yaw angle limit
     omega_max: float = np.deg2rad(10.0)      # attitude-rate limit  (p, q, r)
 

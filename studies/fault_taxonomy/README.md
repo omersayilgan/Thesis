@@ -77,7 +77,18 @@ healthy plant, so every earlier study is unaffected.
 python run_taxonomy_study.py 10      # the campaign  (~2 h on 5 workers)
 python analyse.py                    # figures + results/headline_G.json
 python build_report.py               # fault_taxonomy_case_study.pdf
+python build_ic_appendix.py          # initial_conditions_appendix.pdf
+python run_trajectories.py           # re-solve the flyable rows, keep the paths
+python plot_trajectories.py          # figures/T1..T3
+python build_trajectory_atlas.py     # trajectory_atlas.pdf
 ```
+
+`run_trajectories.py` exists because the campaign records outcomes, not paths —
+800 trajectories were not worth carrying through a multi-hour run when the
+question was landing probability. It re-solves only the rows that produced a
+trajectory (579 of 800; the rest have none by definition, and are also the
+slowest cases) and checks that every re-solve reproduces the campaign's own
+verdict.
 
 `FAULT_WORKERS` controls parallelism (default 4; each worker peaks around
 1.4 GB).
@@ -95,4 +106,22 @@ figures/G4_outcomes.png    outcome composition (how the failures fail)
 figures/G5_altitude.png    landing rate against initial altitude, by class
 figures/G6_margin.png      gate-margin distribution over solved cases
 fault_taxonomy_case_study.pdf
+
+results/G_initial_conditions.csv   the 50 initial conditions, one row each
+initial_conditions_appendix.pdf    engine geometry, regime boxes, every
+                                   initial condition, and the per-sample
+                                   outcome grid of all 16 plants
+
+results/G_trajectories.npz         579 flown paths (powered arc + settle)
+figures/T1_<regime>_profile.png    altitude vs distance to pad, 16 fault panels
+figures/T2_<regime>_ground.png     the same paths from above
+figures/T3_<regime>_one_ic.png     one shared state, all 16 plants overlaid
+trajectory_atlas.pdf               all 15 trajectory figures, with captions
 ```
+
+## A note on the pairing
+
+There is no per-fault initial-condition list. One set of states is drawn per
+regime and reused unchanged for all 16 plants, so every fault is tested from
+*the same* 50 states. That is what makes a row-to-row difference in the outcome
+grid a statement about the plant rather than about the sample.

@@ -1,0 +1,201 @@
+Study H — nominal contacts at 65 s; injecting at 15 points x 12 plants = 180 solves
+  injection times: [0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 46, 51, 55, 59]
+  [H] 1/180  39s elapsed
+  [H] 2/180  40s elapsed
+  [H] 3/180  47s elapsed
+  [H] 4/180  58s elapsed
+  [H] 5/180  63s elapsed
+  [H] 6/180  78s elapsed
+  [H] 7/180  85s elapsed
+  [H] 8/180  101s elapsed
+  [H] 9/180  109s elapsed
+  [H] 10/180  110s elapsed
+  [H] 11/180  127s elapsed
+  [H] 12/180  140s elapsed
+  [H] 13/180  144s elapsed
+  [H] 14/180  146s elapsed
+  [H] 15/180  157s elapsed
+  [H] 16/180  178s elapsed
+  [H] 17/180  179s elapsed
+  [H] 18/180  185s elapsed
+  [H] 19/180  187s elapsed
+  [H] 20/180  203s elapsed
+  [H] 21/180  221s elapsed
+  [H] 22/180  222s elapsed
+  [H] 23/180  227s elapsed
+  [H] 24/180  232s elapsed
+  [H] 25/180  254s elapsed
+  [H] 26/180  263s elapsed
+  [H] 27/180  265s elapsed
+  [H] 28/180  272s elapsed
+  [H] 29/180  278s elapsed
+  [H] 30/180  296s elapsed
+  [H] 31/180  304s elapsed
+  [H] 32/180  313s elapsed
+  [H] 33/180  315s elapsed
+  [H] 34/180  328s elapsed
+  [H] 35/180  333s elapsed
+  [H] 36/180  349s elapsed
+  [H] 37/180  359s elapsed
+  [H] 38/180  360s elapsed
+  [H] 39/180  366s elapsed
+  [H] 40/180  384s elapsed
+  [H] 41/180  385s elapsed
+  [H] 42/180  391s elapsed
+  [H] 43/180  409s elapsed
+  [H] 44/180  419s elapsed
+  [H] 45/180  431s elapsed
+  [H] 46/180  440s elapsed
+  [H] 47/180  441s elapsed
+  [H] 48/180  457s elapsed
+  [H] 49/180  461s elapsed
+  [H] 50/180  470s elapsed
+  [H] 51/180  477s elapsed
+  [H] 52/180  493s elapsed
+  [H] 53/180  504s elapsed
+  [H] 54/180  513s elapsed
+  [H] 55/180  519s elapsed
+  [H] 56/180  533s elapsed
+  [H] 57/180  564s elapsed
+  [H] 58/180  578s elapsed
+  [H] 59/180  578s elapsed
+  [H] 60/180  588s elapsed
+  [H] 61/180  610s elapsed
+  [H] 62/180  612s elapsed
+  [H] 63/180  612s elapsed
+  [H] 64/180  624s elapsed
+  [H] 65/180  626s elapsed
+  [H] 66/180  643s elapsed
+  [H] 67/180  652s elapsed
+  [H] 68/180  657s elapsed
+  [H] 69/180  673s elapsed
+  [H] 70/180  676s elapsed
+  [H] 71/180  684s elapsed
+  [H] 72/180  695s elapsed
+  [H] 73/180  698s elapsed
+  [H] 74/180  713s elapsed
+  [H] 75/180  715s elapsed
+  [H] 76/180  726s elapsed
+  [H] 77/180  732s elapsed
+  [H] 78/180  748s elapsed
+  [H] 79/180  755s elapsed
+  [H] 80/180  755s elapsed
+  [H] 81/180  763s elapsed
+  [H] 82/180  787s elapsed
+  [H] 83/180  790s elapsed
+  [H] 84/180  796s elapsed
+  [H] 85/180  796s elapsed
+  [H] 86/180  803s elapsed
+  [H] 87/180  818s elapsed
+  [H] 88/180  823s elapsed
+  [H] 89/180  826s elapsed
+  [H] 90/180  828s elapsed
+  [H] 91/180  831s elapsed
+  [H] 92/180  846s elapsed
+  [H] 93/180  853s elapsed
+  [H] 94/180  857s elapsed
+  [H] 95/180  859s elapsed
+  [H] 96/180  877s elapsed
+  [H] 97/180  878s elapsed
+  [H] 98/180  880s elapsed
+  [H] 99/180  881s elapsed
+  [H] 100/180  892s elapsed
+  [H] 101/180  901s elapsed
+  [H] 102/180  902s elapsed
+  [H] 103/180  903s elapsed
+  [H] 104/180  905s elapsed
+  [H] 105/180  925s elapsed
+  [H] 106/180  926s elapsed
+  [H] 107/180  926s elapsed
+  [H] 108/180  927s elapsed
+  [H] 109/180  928s elapsed
+  [H] 110/180  945s elapsed
+  [H] 111/180  947s elapsed
+  [H] 112/180  948s elapsed
+  [H] 113/180  950s elapsed
+  [H] 114/180  959s elapsed
+  [H] 115/180  966s elapsed
+  [H] 116/180  968s elapsed
+  [H] 117/180  969s elapsed
+  [H] 118/180  978s elapsed
+  [H] 119/180  985s elapsed
+  [H] 120/180  987s elapsed
+  [H] 121/180  987s elapsed
+  [H] 122/180  994s elapsed
+  [H] 123/180  1004s elapsed
+  [H] 124/180  1005s elapsed
+  [H] 125/180  1011s elapsed
+  [H] 126/180  1023s elapsed
+  [H] 127/180  1023s elapsed
+  [H] 128/180  1030s elapsed
+  [H] 129/180  1040s elapsed
+  [H] 130/180  1041s elapsed
+  [H] 131/180  1046s elapsed
+  [H] 132/180  1061s elapsed
+  [H] 133/180  1070s elapsed
+  [H] 134/180  1077s elapsed
+  [H] 135/180  1078s elapsed
+  [H] 136/180  1093s elapsed
+  [H] 137/180  1094s elapsed
+  [H] 138/180  1109s elapsed
+  [H] 139/180  1110s elapsed
+  [H] 140/180  1124s elapsed
+  [H] 141/180  1126s elapsed
+  [H] 142/180  1126s elapsed
+  [H] 143/180  1127s elapsed
+  [H] 144/180  1138s elapsed
+  [H] 145/180  1138s elapsed
+  [H] 146/180  1140s elapsed
+  [H] 147/180  1140s elapsed
+  [H] 148/180  1142s elapsed
+  [H] 149/180  1151s elapsed
+  [H] 150/180  1154s elapsed
+  [H] 151/180  1155s elapsed
+  [H] 152/180  1155s elapsed
+  [H] 153/180  1165s elapsed
+  [H] 154/180  1167s elapsed
+  [H] 155/180  1168s elapsed
+  [H] 156/180  1168s elapsed
+  [H] 157/180  1177s elapsed
+  [H] 158/180  1179s elapsed
+  [H] 159/180  1180s elapsed
+  [H] 160/180  1180s elapsed
+  [H] 161/180  1189s elapsed
+  [H] 162/180  1191s elapsed
+  [H] 163/180  1192s elapsed
+  [H] 164/180  1192s elapsed
+  [H] 165/180  1199s elapsed
+  [H] 166/180  1202s elapsed
+  [H] 167/180  1203s elapsed
+  [H] 168/180  1204s elapsed
+  [H] 169/180  1209s elapsed
+  [H] 170/180  1212s elapsed
+  [H] 171/180  1213s elapsed
+  [H] 172/180  1214s elapsed
+  [H] 173/180  1214s elapsed
+  [H] 174/180  1219s elapsed
+  [H] 175/180  1222s elapsed
+  [H] 176/180  1223s elapsed
+  [H] 177/180  1223s elapsed
+  [H] 178/180  1224s elapsed
+  [H] 179/180  1229s elapsed
+  [H] 180/180  1231s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/results/H_samples.csv  (180 rows)
+[saved] results/H_trajectories.npz  (169 trajectories)
+
+landing outcome by fault x injection time (L land, g gate miss, . no trajectory):
+                                 0   4   8  13  17  21  25  30  34  38  42  46  51  55  59
+  healthy                        L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  $\eta$=0.50                    L   L   L   L   L   L   L   L   L   L   L   .   L   L   L   14/15
+  $\eta$=0.15                    L   L   L   L   L   L   L   L   L   L   .   .   L   L   L   13/15
+  $\eta$=1.30                    L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  stuck open                     L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  engine out                     L   L   L   L   L   L   L   L   L   g   .   .   .   L   L   11/15
+  $\tau_T$=2.5 s                 L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  TVC bias                       L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  chugging                       L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  dead time                      L   L   L   L   .   L   .   .   L   .   L   L   L   .   L   10/15
+  mixture ratio                  L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+  erosion drift                  L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   15/15
+
+Study H complete.

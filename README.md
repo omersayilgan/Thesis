@@ -19,7 +19,9 @@ studies/            One directory per investigation, each self-contained
   gimbal_degradation/     Gimbal bandwidth sweep     -> G1_*..G4_*
   thrust_efficiency/      Thrust efficiency sweep    -> E1_*..E6_*
   fault_onset/            Fault-onset campaigns D/E/F -> results/, figures/
-  fault_taxonomy/         16 framework faults x 4 IC regimes -> results/, figures/
+  fault_taxonomy/         16 framework faults x 5 IC regimes -> results/, figures/
+  fault_injection/        12 faults injected along an Apollo descent -> results/
+  engine_placement/       sets y_eng from measured authority -> figures/
   reliability/            Reliability vs T/W, RCS DOF analysis
 
 docs/               Thesis-level write-ups (.tex/.md sources + built .pdf)
@@ -39,7 +41,11 @@ python studies/thrust_efficiency/run_efficiency_study.py
 python studies/gimbal_degradation/run_gimbal_study.py
 python studies/fault_onset/run_study_D.py       # then run_study_E.py, run_study_F.py
 python studies/fault_taxonomy/run_taxonomy_study.py   # then analyse.py, build_report.py
+python studies/fault_injection/apollo_nominal.py      # then run_injection_study.py,
+                                                     # harden.py, analyse_injection.py
 python studies/actuation_envelopes/build_report.py
+python studies/actuation_envelopes/build_acceleration_tables.py
+python studies/engine_placement/place_engines.py
 ```
 
 Each study writes its figures and data **inside its own directory**, next to
