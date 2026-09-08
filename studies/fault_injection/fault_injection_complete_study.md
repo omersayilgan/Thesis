@@ -30,9 +30,9 @@ survivable*. It lands 168 of them and finds
 statement, by re-solving each at four progressively weaker corridors.
 3 of them recover — all at the first level, the glide cone alone.
 
-**The L5 diagnostic** removes every state constraint that remains, the altitude
-floor included, leaving only the dynamics and the actuator bounds.
-8 cases fail even there.
+**The last rung, L4**, drops every state constraint except $z > 0$: nothing is
+asked of the vehicle but to stay above the surface. 9 cases fail
+even there.
 
 The three-line result:
 
@@ -41,14 +41,12 @@ The three-line result:
 |:----------------------------------------|:----------|:----------------------------------------------|
 | Injections that land | 168 of 180 | Study H, inside the design corridor |
 | Recoverable once the cone is relaxed | 3 | 2 still land in the Apollo gate |
-| Feasible only with no state constraints at all | 1 | flies below the surface — a diagnostic, not a landing |
-| Infeasible under every relaxation | 8 | resisted 22 seeds across five corridors |
+| Infeasible with only $z > 0$ enforced | 9 | resisted 22 seeds across four corridors |
 
 
-The headline correction is the third and fourth lines together: Study H's
-11 "unrecoverable" injections are really **8**
-unrecoverable injections plus 3 that were fighting the corridor and
-1 that is short only of the surface.
+The headline correction is the last two lines together: Study H's
+11 "unrecoverable" injections are really **9**
+unrecoverable injections plus 3 that were fighting the glide cone.
 
 # The vehicle and the nominal
 
@@ -174,20 +172,20 @@ the corridor**" — a very different engineering statement.
 | L1 | glide cone 12 to 6 deg | none dropped |
 | L2 | + attitude 45 to 60 deg, rate 10 to 20 deg/s | none dropped |
 | L3 | + speed 60 to 90 m/s (axis and norm) | none dropped |
-| L4 | corridor removed (cone, speed, attitude, rate) | cone, vel, att, rate |
-| L5 | all state constraints removed, altitude floor included | cone, vel, att, rate, alt |
+| L4 | all state constraints dropped except z > 0 | cone, vel, att, rate |
 
 
 Thrust and gimbal bounds stand at every level — they are hardware. The Apollo
 gate stands at every level: a relaxed solve still has to touch down inside the
-same gate to count as a landing. The altitude floor stands through L4 and is
-dropped only at **L5**, where *nothing constrains the state anywhere in the
-problem*.
+same gate to count as a landing. And the altitude floor stands at every level,
+so $z > 0$ holds throughout — L4 leaves it as the *only* constraint on the
+state.
 
 Effort is matched deliberately. Study H spent 7 seeds at up to 1,200 iterations
-on each of these cases; each ladder level adds 3 horizon seeds
-at 1,200, so a case still infeasible at L5 has resisted
-**22 seeds**.
+on each of these cases; each rung adds 3 horizon seeds at
+1,200, and the terminal rung L4 — where a failure is the study's
+strongest claim — adds 6. A case still infeasible there has
+resisted **22 seeds**.
 
 ## What the ladder found
 
@@ -205,7 +203,7 @@ at 1,200, so a case still infeasible at L5 has resisted
 | dead time | 55 s | 8 m | no recovery | — | no recovery | — | n/a |
 | engine out | 38 s | 109 m | gate miss | L1 | gate miss | 6.88 | glide cone |
 | engine out | 42 s | 56 m | no recovery | — | no recovery | — | n/a |
-| engine out | 46 s | 19 m | no recovery | L5 | subsurface | 0.60 | altitude floor |
+| engine out | 46 s | 19 m | no recovery | — | no recovery | — | n/a |
 | engine out | 51 s | 4 m | no recovery | L1 | land | 0.60 | glide cone |
 | $\eta$=0.50 | 46 s | 19 m | no recovery | L1 | land | 0.60 | glide cone |
 | $\eta$=0.15 | 42 s | 56 m | no recovery | — | no recovery | — | n/a |
@@ -237,37 +235,34 @@ their rate and attitude peaks are exactly 1.00× and only the cone is broken.
 ![What the relaxation bought, in 3-D](/home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/figures/3D2_relaxed_by_case.png)
 
 
-# The L5 diagnostic — removing the state constraints entirely
-
-L5 is not a corridor. With the altitude floor gone there is no constraint on
-the state left in the problem; only the dynamics and the actuator bounds remain.
-A trajectory found there may pass through the lunar surface, so it is **not a
-landing** and is not counted as one. Its job is to split the remaining failures
-in two: cases where the state constraints were the obstacle, and cases where the
-plant simply cannot do it.
-
-**1 of the 11 found a trajectory at L5**
-and it dives as deep as 57 m below the surface.
+![Where the surviving losses sit on the descent](/home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/figures/3D3_losses.png)
 
 
-![The trajectory that exists only without the altitude floor](/home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/figures/3D3_subsurface.png)
+# The last rung — everything dropped except z > 0
 
+L4 is the weakest problem in this study. The glide cone, the speed box, the
+attitude limits and the rate limits are all gone; the only thing still asked of
+the state is that the vehicle stays above the lunar surface.
 
-This case is the study's sharpest methodological warning. Its touchdown scores a
-clean gate margin of 0.60 — the gate inspects only the final
-state — at the end of a path that spent most of its length underground. **A
-trajectory that satisfies the terminal criteria is not necessarily a landing**,
-and any campaign scoring recoveries on a terminal gate alone needs a path check
-to go with it.
+**The altitude floor is never dropped, at any level.** It is worth saying why,
+because dropping it looks superficially like the natural end of a relaxation
+ladder. It is not — the landing gate inspects only the *touchdown state*, so a
+path routed through the ground can return to the pad with a clean gate margin
+and be scored as a landing. That is an arithmetic result rather than a flight
+one, and admitting it would corrupt the very count this study exists to
+produce. $z > 0$ is the boundary between a relaxed problem and a meaningless
+one.
 
-The other **8** cases fail even with no state constraints at all.
-They are short of control authority outright, and no guidance law, however
-permissive, recovers them.
+**9 of the 11 cases fail even here**, with nothing
+in their way but the ground. They are short of control authority outright: no
+guidance law, however permissive about attitude, rate, speed or approach angle,
+recovers them. These are the study's real losses.
+
 
 # What the three campaigns mean together
 
 **A solver's "infeasible" is a property of the constraint set, and must be
-reported as one.** 11 failures became 8 once the
+reported as one.** 11 failures became 9 once the
 same states and the same plants were given a wider corridor. Any study that
 reports fault survivability from a constrained planner is reporting its
 constraints as much as its vehicle, and the only way to know the split is to
@@ -292,7 +287,7 @@ budget should carry is the injection time past which recovery stops existing —
 and after this study, two of them: one for the design corridor and one for the
 open one.
 
-**8 genuine losses, not 11.** After five corridors
+**9 genuine losses, not 11.** After four corridors
 and 22 seeds, the failures that remain are
 $\eta$=0.15, dead time, engine out — and all five
 dead time injections are among
@@ -325,7 +320,6 @@ python studies/fault_injection/run_injection_study.py      # Study H campaign
 python studies/fault_injection/harden.py                   # H hardening pass
 python studies/fault_injection/analyse_injection.py        # H figures + JSON
 python studies/fault_injection/run_relaxed_study.py        # H-R ladder, L1-L4
-python studies/fault_injection/run_relaxed_study.py --extend L5   # the L5 diagnostic
 python studies/fault_injection/analyse_relaxed.py          # H-R figures + JSON
 python studies/fault_injection/plot_trajectories_3d.py     # the 3-D figures
 python studies/fault_injection/build_combined_report.py    # this document

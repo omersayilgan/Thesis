@@ -1,7 +1,7 @@
 """
 Build the COMPLETE fault-injection study as one document (markdown -> PDF).
 
-Studies H, H-R and the L5 diagnostic were written up separately as they were
+Studies H and H-R were written up separately as they were
 run.  This assembles all three into one narrative with the figures in the order
 the argument needs them, and elaborates on what the three campaigns mean
 together rather than one at a time.
@@ -64,13 +64,13 @@ def build():
 
     solved = [c for c in cases if c['level'] != 'none']
     landed = [c for c in solved if c['lands']]
-    sub = [c for c in cases if c['outcome'] == 'subsurface']
     stuck = [c for c in cases if c['level'] == 'none']
     l1 = [c for c in cases if c['level'] == 'L1']
     n_land_H = sum(1 for f in faults for j in cells[f]
                    if cells[f][j] == 'land')
-    n_seeds_total = 7 + len(R['ladder']) * len(R['seeds'])
-    depths = [c.get('subsurface_depth') for c in sub if c.get('subsurface_depth')]
+    t_seeds = R.get('terminal_seeds') or R['seeds']
+    n_seeds_total = (7 + (len(R['ladder']) - 1) * len(R['seeds'])
+                     + len(t_seeds))
 
     def short(f):
         return cat[f]['short'] if f in cat else f
@@ -110,9 +110,9 @@ survivable*. It lands {n_land_H} of them and finds
 statement, by re-solving each at four progressively weaker corridors.
 {len(l1)} of them recover — all at the first level, the glide cone alone.
 
-**The L5 diagnostic** removes every state constraint that remains, the altitude
-floor included, leaving only the dynamics and the actuator bounds.
-{len(stuck)} cases fail even there.
+**The last rung, L4**, drops every state constraint except $z > 0$: nothing is
+asked of the vehicle but to stay above the surface. {len(stuck)} cases fail
+even there.
 
 The three-line result:
 
@@ -122,17 +122,14 @@ The three-line result:
          'Study H, inside the design corridor'],
         ['Recoverable once the cone is relaxed', str(len(l1)),
          f'{len([c for c in l1 if c["lands"]])} still land in the Apollo gate'],
-        ['Feasible only with no state constraints at all', str(len(sub)),
-         'flies below the surface — a diagnostic, not a landing'],
-        ['Infeasible under every relaxation', str(len(stuck)),
-         f'resisted {n_seeds_total} seeds across five corridors'],
+        ['Infeasible with only $z > 0$ enforced', str(len(stuck)),
+         f'resisted {n_seeds_total} seeds across four corridors'],
     ], ['Result', 'Count', 'Reading'], [40, 10, 46]))
 
     A(f"""
-The headline correction is the third and fourth lines together: Study H's
+The headline correction is the last two lines together: Study H's
 {R['n_no_recovery']} "unrecoverable" injections are really **{len(stuck)}**
-unrecoverable injections plus {len(l1)} that were fighting the corridor and
-{len(sub)} that {plural(len(sub), 'is', 'are')} short only of the surface.
+unrecoverable injections plus {len(l1)} that were fighting the glide cone.
 
 # The vehicle and the nominal
 
@@ -261,14 +258,15 @@ the corridor**" — a very different engineering statement.
     A(f"""
 Thrust and gimbal bounds stand at every level — they are hardware. The Apollo
 gate stands at every level: a relaxed solve still has to touch down inside the
-same gate to count as a landing. The altitude floor stands through L4 and is
-dropped only at **L5**, where *nothing constrains the state anywhere in the
-problem*.
+same gate to count as a landing. And the altitude floor stands at every level,
+so $z > 0$ holds throughout — L4 leaves it as the *only* constraint on the
+state.
 
 Effort is matched deliberately. Study H spent 7 seeds at up to 1,200 iterations
-on each of these cases; each ladder level adds {len(R['seeds'])} horizon seeds
-at {R['iters']:,}, so a case still infeasible at L5 has resisted
-**{n_seeds_total} seeds**.
+on each of these cases; each rung adds {len(R['seeds'])} horizon seeds at
+{R['iters']:,}, and the terminal rung L4 — where a failure is the study's
+strongest claim — adds {len(t_seeds)}. A case still infeasible there has
+resisted **{n_seeds_total} seeds**.
 
 ## What the ladder found
 
@@ -306,34 +304,32 @@ recoveries look bought by the body-rate limit at ~2×; measured after the ramp
 their rate and attitude peaks are exactly 1.00× and only the cone is broken.
 """)
     A(fig('3D2_relaxed_by_case.png', 'What the relaxation bought, in 3-D'))
+    A(fig('3D3_losses.png', 'Where the surviving losses sit on the descent'))
 
     A(f"""
-# The L5 diagnostic — removing the state constraints entirely
+# The last rung — everything dropped except z > 0
 
-L5 is not a corridor. With the altitude floor gone there is no constraint on
-the state left in the problem; only the dynamics and the actuator bounds remain.
-A trajectory found there may pass through the lunar surface, so it is **not a
-landing** and is not counted as one. Its job is to split the remaining failures
-in two: cases where the state constraints were the obstacle, and cases where the
-plant simply cannot do it.
+L4 is the weakest problem in this study. The glide cone, the speed box, the
+attitude limits and the rate limits are all gone; the only thing still asked of
+the state is that the vehicle stays above the lunar surface.
 
-**{len(sub)} of the {R['n_no_recovery']} found a trajectory at L5**
-{f"and {'it dives' if len(sub) == 1 else 'they dive'} as deep as {max(depths):.0f} m below the surface" if depths else ''}.
+**The altitude floor is never dropped, at any level.** It is worth saying why,
+because dropping it looks superficially like the natural end of a relaxation
+ladder. It is not — the landing gate inspects only the *touchdown state*, so a
+path routed through the ground can return to the pad with a clean gate margin
+and be scored as a landing. That is an arithmetic result rather than a flight
+one, and admitting it would corrupt the very count this study exists to
+produce. $z > 0$ is the boundary between a relaxed problem and a meaningless
+one.
+
+**{len(stuck)} of the {R['n_no_recovery']} cases fail even here**, with nothing
+in their way but the ground. They are short of control authority outright: no
+guidance law, however permissive about attitude, rate, speed or approach angle,
+recovers them. These are the study's real losses.
 """)
-    A(fig('3D3_subsurface.png', 'The trajectory that exists only without the '
-                                'altitude floor'))
+
+
     A(f"""
-This case is the study's sharpest methodological warning. Its touchdown scores a
-clean gate margin of {sub[0]['margin']:.2f} — the gate inspects only the final
-state — at the end of a path that spent most of its length underground. **A
-trajectory that satisfies the terminal criteria is not necessarily a landing**,
-and any campaign scoring recoveries on a terminal gate alone needs a path check
-to go with it.
-
-The other **{len(stuck)}** cases fail even with no state constraints at all.
-They are short of control authority outright, and no guidance law, however
-permissive, recovers them.
-
 # What the three campaigns mean together
 
 **A solver's "infeasible" is a property of the constraint set, and must be
@@ -362,7 +358,7 @@ budget should carry is the injection time past which recovery stops existing —
 and after this study, two of them: one for the design corridor and one for the
 open one.
 
-**{len(stuck)} genuine losses, not {R['n_no_recovery']}.** After five corridors
+**{len(stuck)} genuine losses, not {R['n_no_recovery']}.** After four corridors
 and {n_seeds_total} seeds, the failures that remain are
 {', '.join(sorted({short(c['fault']) for c in stuck}))} — and all five
 {short('dead_time') if 'dead_time' in cat else 'dead-time'} injections are among
@@ -395,7 +391,6 @@ python studies/fault_injection/run_injection_study.py      # Study H campaign
 python studies/fault_injection/harden.py                   # H hardening pass
 python studies/fault_injection/analyse_injection.py        # H figures + JSON
 python studies/fault_injection/run_relaxed_study.py        # H-R ladder, L1-L4
-python studies/fault_injection/run_relaxed_study.py --extend L5   # the L5 diagnostic
 python studies/fault_injection/analyse_relaxed.py          # H-R figures + JSON
 python studies/fault_injection/plot_trajectories_3d.py     # the 3-D figures
 python studies/fault_injection/build_combined_report.py    # this document

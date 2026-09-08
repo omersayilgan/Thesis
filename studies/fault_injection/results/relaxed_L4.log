@@ -1,0 +1,33 @@
+Study H-R — relaxing 9 cases (9 no_recovery, 0 gate_miss) over 1 levels x 6 seeds at 1200 iterations
+  L4  all state constraints dropped except z > 0
+  (3 cases already solved at a stronger level are carried over untouched)
+  [H-R] 1/9  157s elapsed
+  [H-R] 2/9  202s elapsed
+  [H-R] 3/9  241s elapsed
+  [H-R] 4/9  242s elapsed
+  [H-R] 5/9  300s elapsed
+  [H-R] 6/9  425s elapsed
+  [H-R] 7/9  588s elapsed
+  [H-R] 8/9  646s elapsed
+  [H-R] 9/9  656s elapsed
+[saved] /home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/results/HR_samples.csv  (12 rows)
+
+[saved] results/HR_samples.csv, results/HR_trajectories.npz (4 trajectories)
+
+case                           base         level  outcome     margin  binding baseline limit
+  pt 4 dead_time                 no_recovery  none   no_recovery    inf  n/a
+  pt 6 dead_time                 no_recovery  none   no_recovery    inf  n/a
+  pt 7 dead_time                 no_recovery  none   no_recovery    inf  n/a
+  pt 9 dead_time                 no_recovery  none   no_recovery    inf  n/a
+  pt13 dead_time                 no_recovery  none   no_recovery    inf  n/a
+  pt 9 engine_out                gate_miss    L1     gate_miss     6.88  glide cone (2.02x)
+  pt10 engine_out                no_recovery  none   no_recovery    inf  n/a
+  pt11 engine_out                no_recovery  none   no_recovery    inf  n/a
+  pt12 engine_out                no_recovery  L1     land          0.60  glide cone (1.77x)
+  pt11 thrust_loss_50            no_recovery  L1     land          0.60  glide cone (2.02x)
+  pt10 thrust_loss_85            no_recovery  none   no_recovery    inf  n/a
+  pt11 thrust_loss_85            no_recovery  none   no_recovery    inf  n/a
+
+3 of 12 found a trajectory once relaxed; 2 of those still land inside the Apollo gate.
+  L1 (cone): 3
+  infeasible at every level: 9

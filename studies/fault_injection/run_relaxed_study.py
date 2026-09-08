@@ -28,11 +28,17 @@ corridors, stopping at the first that yields a trajectory:
     L1  cone       glide cone 12 -> 6 deg
     L2  + attitude euler 45 -> 60 deg, rate 10 -> 20 deg/s
     L3  + speed    per-axis and norm 60 -> 90 m/s
-    L4  corridor removed entirely (cone, speed, attitude and rate dropped)
+    L4  every state constraint dropped EXCEPT the altitude floor, so the only
+        thing still asked of the state is z > 0: stay above the surface
 
 What is NEVER relaxed, because it is not a comfort limit:
 
-    * the altitude floor - the vehicle may not fly through the surface;
+    * the altitude floor - the vehicle may not fly through the surface.  This
+      is not a corridor and there is no version of the question in which
+      dropping it is informative: a "trajectory" that passes through the ground
+      is not a trajectory the vehicle can fly, and its touchdown state scores
+      against the landing gate exactly as if it had.  L4 is therefore the
+      weakest problem in this study, and z > 0 holds in all of it;
     * thrust and gimbal bounds - actuator hardware, and relaxing them would
       answer a question about a vehicle that does not exist;
     * the landing gate - a relaxed solve still has to touch down inside the
@@ -77,6 +83,10 @@ RELAX_ITER = 1200
 N_RAMP = 6                        # solve_ocp's n_relax: the corridor is wider
                                   # than the nominal envelope only up to here
 SEEDS = [0, +8, -4]               # horizon offsets tried at every level
+# The last level of a run carries the study's strongest claim - "no trajectory
+# exists even here" - so it is worth more search than the levels above it,
+# where a failure only sends the case one rung further down.
+TERMINAL_SEEDS = [0, +8, -4, -8, +12, +20]
 
 # The ladder.  `cfg` entries overwrite fields of the baseline OCPConfig;
 # `relax` names constraints solve_ocp drops altogether.
@@ -92,23 +102,11 @@ LADDER = [
          cfg=dict(glide_slope=np.deg2rad(6.0), euler_max=np.deg2rad(60.0),
                   omega_max=np.deg2rad(20.0), V_max=90.0, V_norm_max=90.0),
          relax=()),
-    dict(key='L4', label='corridor removed (cone, speed, attitude, rate)',
-         short='corridor off',
+    dict(key='L4', label='all state constraints dropped except z > 0',
+         short='z > 0 only',
          cfg=dict(glide_slope=np.deg2rad(6.0), euler_max=np.deg2rad(60.0),
                   omega_max=np.deg2rad(20.0), V_max=90.0, V_norm_max=90.0),
          relax=('cone', 'vel', 'att', 'rate')),
-    # L5 drops the last state constraint there is: the altitude floor that
-    # keeps the vehicle above the surface.  Nothing about the STATE is
-    # restricted any more - only the dynamics and the actuator bounds remain,
-    # so a trajectory found here may fly through the ground and is not a
-    # landing.  That is the point: it separates "the state constraints made
-    # this infeasible" from "this plant cannot do it".  A case that fails even
-    # at L5 fails on physics the relaxation cannot reach.
-    dict(key='L5', label='all state constraints removed, altitude floor included',
-         short='no states',
-         cfg=dict(glide_slope=np.deg2rad(6.0), euler_max=np.deg2rad(60.0),
-                  omega_max=np.deg2rad(20.0), V_max=90.0, V_norm_max=90.0),
-         relax=('cone', 'vel', 'att', 'rate', 'alt')),
 ]
 LEVELS = [l['key'] for l in LADDER]
 
@@ -178,7 +176,7 @@ def binding_constraint(ex, tol=1.001):
 # ══════════════════════════════════════════════════════════════════════
 
 def attack(job):
-    point, t_f, key, x, N0, base_outcome, levels = job
+    point, t_f, key, x, N0, base_outcome, levels, seeds = job
     levels = [l for l in LADDER if l['key'] in levels]
     case = ic.CASES[key]
     plant = case.lm()
@@ -193,7 +191,7 @@ def attack(job):
 
     for level in levels:
         cfg = level_cfg(level)
-        for d in SEEDS:
+        for d in seeds:
             N = int(np.clip(N0 + d, ri.N_MIN, ri.N_MAX))
             res = fl.solve_ocp(plant, cfg, x, N, failed=case.failed,
                                max_iter=RELAX_ITER, n_relax=6, n_cone=3,
@@ -255,7 +253,7 @@ def _from_csv(r):
     return r
 
 
-def main(extend_from=None):
+def main(extend_from=None, seeds=None):
     """Walk the ladder.
 
     `extend_from` re-attacks only the cases an earlier run left infeasible, at
@@ -269,11 +267,16 @@ def main(extend_from=None):
 
     if extend_from:
         prev = [_from_csv(r) for r in cp.read_csv(hr_path)]
-        keep = [r for r in prev if r['level'] != 'none']
-        todo = [dict(r, outcome=r['base_outcome'])
-                for r in prev if r['level'] == 'none']
-        levels = [l['key'] for l in LADDER
-                  if LEVELS.index(l['key']) >= LEVELS.index(extend_from)]
+        cut = LEVELS.index(extend_from)
+        # A row is only kept if it was solved STRICTLY ABOVE the level being
+        # re-run.  That also catches rows carrying a level the ladder no longer
+        # has - an earlier run's L5 - which must be re-attacked rather than
+        # silently carried into a study that no longer contains it.
+        keep = [r for r in prev
+                if r['level'] in LEVELS and LEVELS.index(r['level']) < cut]
+        todo = [dict(r, outcome=r['base_outcome']) for r in prev
+                if r not in keep]
+        levels = LEVELS[cut:]
     else:
         rows = cp.read_csv(os.path.join(RESULTS, 'H_samples.csv'))
         keep = []
@@ -284,9 +287,10 @@ def main(extend_from=None):
         print('nothing to relax: Study H landed everywhere')
         return
     n_nr = sum(r['outcome'] == 'no_recovery' for r in todo)
+    seeds = seeds or SEEDS
     print(f'Study H-R — relaxing {len(todo)} cases ({n_nr} no_recovery, '
           f'{len(todo) - n_nr} gate_miss) over {len(levels)} levels x '
-          f'{len(SEEDS)} seeds at {RELAX_ITER} iterations')
+          f'{len(seeds)} seeds at {RELAX_ITER} iterations')
     for l in LADDER:
         if l['key'] in levels:
             print(f"  {l['key']}  {l['label']}")
@@ -296,14 +300,23 @@ def main(extend_from=None):
 
     jobs = [(int(r['point']), float(r['t_f']), r['fault'],
              X_nom[:, int(round(float(r['t_f'])))].copy(), int(r['N_rem']),
-             r['outcome'], levels)
+             r['outcome'], levels, seeds)
             for r in todo]
     out = cp.pmap(attack, jobs, label='H-R')
 
     recs, traj = list(keep), {}
     npz_path = os.path.join(RESULTS, 'HR_trajectories.npz')
     if keep and os.path.exists(npz_path):
-        traj.update(dict(np.load(npz_path)))     # keep the earlier recoveries
+        # Carry over ONLY the trajectories belonging to rows that survived the
+        # re-run.  A case that was solved by a level this ladder no longer has
+        # is being re-attacked, and leaving its old path in the archive would
+        # hand the analysis a trajectory for a case now recorded as having
+        # none.
+        alive = {(r['point'], r['fault']) for r in keep}
+        old = dict(np.load(npz_path))
+        traj.update({k: v for k, v in old.items()
+                     if tuple(k.split('|')[1:]) in
+                     {(str(p), f) for p, f in alive}})
     for rec, X, Xff in out:
         recs.append(rec)
         if X is not None:
@@ -344,6 +357,10 @@ if __name__ == '__main__':
     # --extend L5: re-attack only what is still infeasible, from that level on
     arg = sys.argv[1:]
     if arg and arg[0] == '--extend':
-        main(extend_from=arg[1] if len(arg) > 1 else LEVELS[-1])
+        lv = arg[1] if len(arg) > 1 else LEVELS[-1]
+        # re-running the terminal level is the strongest-claim case: search it
+        # with the full seed set
+        main(extend_from=lv,
+             seeds=TERMINAL_SEEDS if lv == LEVELS[-1] else None)
     else:
         main()

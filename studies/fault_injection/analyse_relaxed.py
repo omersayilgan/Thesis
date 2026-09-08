@@ -180,9 +180,12 @@ def fig_ladder(rows, path):
     ax.grid(False); ax.tick_params(length=0)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_title('Weakest relaxation that admits a trajectory\n'
-                 'L = lands in the Apollo gate, G = flies but misses it, '
-                 'S = path goes below the surface',
+    # the S key only belongs on the figure if such a case can occur, which it
+    # cannot while z > 0 is enforced at every level
+    key = 'L = lands in the Apollo gate, G = flies but misses it'
+    if any(r['outcome'] == 'subsurface' for r in rows):
+        key += ', S = path goes below the surface'
+    ax.set_title('Weakest relaxation that admits a trajectory\n' + key,
                  fontsize=10.5, weight='bold', color=INK, loc='left')
     ax.legend(handles=[Patch(facecolor='#f0dcdc', label='tried, still infeasible'),
                        *[Patch(facecolor=LEVEL_COLOR[l['key']],
@@ -329,7 +332,8 @@ def main():
         n_unsolved=len(rows) - len(got),
         ladder=[dict(key=l['key'], label=l['label'], short=l['short'],
                      relax=list(l['relax'])) for l in rr.LADDER],
-        seeds=rr.SEEDS, iters=rr.RELAX_ITER,
+        seeds=rr.SEEDS, terminal_seeds=rr.TERMINAL_SEEDS,
+        iters=rr.RELAX_ITER,
         by_level=by_level, by_binding=by_binding,
         n_ramp=N_RAMP,
         baseline=dict(glide_deg=float(nom['glide_deg']),

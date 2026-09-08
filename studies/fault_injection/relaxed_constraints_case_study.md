@@ -51,7 +51,7 @@ trajectory actually goes**.
 
 ## The ladder
 
-Each case is re-attacked at 5 levels, stopping at the first that yields a
+Each case is re-attacked at 4 levels, stopping at the first that yields a
 trajectory:
 
 
@@ -60,8 +60,7 @@ trajectory:
 | L1 | glide cone 12 to 6 deg | none dropped |
 | L2 | + attitude 45 to 60 deg, rate 10 to 20 deg/s | none dropped |
 | L3 | + speed 60 to 90 m/s (axis and norm) | none dropped |
-| L4 | corridor removed (cone, speed, attitude, rate) | cone, vel, att, rate |
-| L5 | all state constraints removed, altitude floor included | cone, vel, att, rate, alt |
+| L4 | all state constraints dropped except z > 0 | cone, vel, att, rate |
 
 
 ## What is never relaxed
@@ -75,37 +74,35 @@ changes what counts as success, and it never invents hardware:
 * **The Apollo landing gate stands at every level.** A relaxed solve still has
   to touch down inside the same gate to be counted as a landing, which is why
   the results below distinguish *found a trajectory* from *landed*.
-* **The altitude floor stands through L4**, and is dropped only at **L5**.
+* **The altitude floor stands at every level.** The vehicle may not fly through
+  the surface, and there is no version of this question in which dropping that
+  is informative: a path through the ground is not a path the vehicle can fly,
+  yet its touchdown state would score against the landing gate exactly as if it
+  were — the gate inspects only the final state. Dropping it would manufacture
+  "recoveries" that are arithmetic, not flight.
 
-L5 needs stating plainly, because it is not a corridor at all: with the floor
-gone there is **no constraint on the state left anywhere in the problem** —
-only the dynamics and the actuator bounds. A trajectory found there may pass
-through the lunar surface, and it is therefore *not a landing* and is not
-counted as one. Its only job is diagnostic: it separates "the state constraints
-made this infeasible" from "this plant cannot fly this manoeuvre at all". A case
-that fails at L5 has failed on physics no relaxation can reach.
+That makes **L4 the weakest problem in this study**: every state constraint is
+gone except $z > 0$. A case that fails there fails with nothing asked of it but
+to stay above the surface, which is as close to "the vehicle cannot do it" as
+this machinery can get.
 
 ## Effort parity
 
 A relaxed solve that fails must fail for the same reason the baseline did, not
 because it was tried less hard. Study H spent 7 seeds at up to 1,200 iterations
-on each of these cases (2 in the campaign, 6 in the hardening pass). Every
-level here gets 3 horizon seeds at 1,200 iterations, so
-a case still infeasible at L5 has now resisted
-**22 seeds** in total.
+on each of these cases (2 in the campaign, 6 in the hardening pass). Each rung
+here gets 3 horizon seeds at 1,200 iterations, and the
+terminal rung L4 — where a failure is the study's
+strongest claim — gets 6. A case still infeasible there has now
+resisted **22 seeds** in total.
 
 # Results
 
 Of the 12 cases carried forward — 11 that found no
 trajectory and 1 that flew but missed the gate —
-**4 found a trajectory** once the corridor was relaxed, and
+**3 found a trajectory** once the corridor was relaxed, and
 **2** of those still land inside the unchanged Apollo gate.
-1 of the trajectories was found only at L5,
-with every state constraint gone including the surface;
-it flies below the ground and
-is therefore reported as `subsurface` rather than
-counted as a landing.
-**8** remained infeasible at every level.
+**9** remained infeasible at every level.
 
 
 
@@ -121,7 +118,7 @@ counted as a landing.
 | dead time | 55 s | 8 m | no recovery | — | no recovery | — | n/a | nan× |
 | engine out | 38 s | 109 m | gate miss | L1 | gate miss | 6.88 | glide cone | 2.02× |
 | engine out | 42 s | 56 m | no recovery | — | no recovery | — | n/a | nan× |
-| engine out | 46 s | 19 m | no recovery | L5 | subsurface | 0.60 | altitude floor | inf× |
+| engine out | 46 s | 19 m | no recovery | — | no recovery | — | n/a | nan× |
 | engine out | 51 s | 4 m | no recovery | L1 | land | 0.60 | glide cone | 1.77× |
 | $\eta$=0.50 | 46 s | 19 m | no recovery | L1 | land | 0.60 | glide cone | 2.02× |
 | $\eta$=0.15 | 42 s | 56 m | no recovery | — | no recovery | — | n/a | nan× |
@@ -141,7 +138,6 @@ recovery genuinely could not have respected.
 | Binding limit | Cases | Which |
 |:--------------------|:--------|:----------------------------------------------------|
 | glide cone | 3 | engine_out@38, engine_out@51, thrust_loss_50@46 |
-| altitude floor | 1 | engine_out@46 |
 
 
 ![Peak excursion beyond each baseline limit, per recovered case](/home/omersayilgan/Desktop/ThesisGit/studies/fault_injection/figures/HR2_excursions.png)
@@ -170,20 +166,8 @@ moved.
 
 # What this means
 
-**The surface is where the diagnosis splits.** 1 of the cases have a
-trajectory only once the altitude floor is removed, diving as deep as 57 m below it. That is not a
-recovery — the vehicle reaches the pad by flying through the ground — and the
-touchdown score does not reveal it, because the gate inspects only the final
-state: this trajectory scores
-a clean margin at the end of a path that spent most of its length underground.
-It is reported as `subsurface`, not as a
-landing. What it establishes is
-diagnostic: the plant retains enough authority to make the *geometry*, and what
-it cannot do is make it while staying above the surface. A case that fails even
-there is short of control authority outright.
-
 **A failed solve is a statement about the problem, not only about the vehicle.**
-4 of 12 cases that Study H recorded as unrecoverable
+3 of 12 cases that Study H recorded as unrecoverable
 have a trajectory once the corridor is widened. Reporting them as lost vehicles
 would have overstated the fault's severity by exactly that much.
 
@@ -191,18 +175,18 @@ would have overstated the fault's severity by exactly that much.
 recovered case names a specific limit it had to break and the factor by which it
 broke it. That is the number a guidance designer needs: not "relax the
 constraints" but "this fault is survivable if the vehicle is permitted
-altitude floor; glide cone
+glide cone
 beyond the nominal envelope".
 
 **The gate is the honest discriminator.** 2 of the
-4 recovered cases land inside
+3 recovered cases land inside
 the Apollo gate; the rest fly a trajectory to the surface but arrive outside it.
 A trajectory that exists is not the same as a landing, and the ladder deliberately
 keeps those separate.
 
 
-**8 cases did not yield to any
-relaxation** (dead time @17 s, dead time @25 s, dead time @30 s, dead time @38 s, dead time @55 s, engine out @42 s, $\eta$=0.15 @42 s, $\eta$=0.15 @46 s).
+**9 cases did not yield to any
+relaxation** (dead time @17 s, dead time @25 s, dead time @30 s, dead time @38 s, dead time @55 s, engine out @42 s, engine out @46 s, $\eta$=0.15 @42 s, $\eta$=0.15 @46 s).
 With the entire corridor removed, the only constraints left are the actuator
 bounds, the surface, and the dynamics — so these are the cases where the
 *vehicle* genuinely cannot get to the pad, not the cases where the planner was

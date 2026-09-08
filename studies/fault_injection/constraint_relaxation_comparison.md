@@ -36,13 +36,12 @@ This document sets the two against each other.
 
 | Measure | Study H (baseline corridor) | Study H-R (relaxed) | Change |
 |:----------------------------------|:--------------------------|:------------------------|:----------|
-| Injections with a trajectory | 169 of 180 | 172 of 180 | +4 |
-| ...of which fly above the surface | 169 of 180 | 171 of 180 | +3 |
+| Injections with a trajectory | 169 of 180 | 171 of 180 | +3 |
 | Injections that land in the gate | 168 of 180 | 170 of 180 | +2 |
-| Cases with no trajectory at all | 11 | 8 | −3 |
+| Cases with no trajectory at all | 11 | 9 | −2 |
 
 
-4 of the 12 carried-forward cases found a trajectory
+3 of the 12 carried-forward cases found a trajectory
 once the corridor was widened, and 2 of those still touch down
 inside the **unchanged** Apollo gate. The gate was never relaxed — only what the
 vehicle was permitted to do on the way there.
@@ -53,7 +52,7 @@ vehicle was permitted to do on the way there.
 
 
 
-4 cases that Study H reported as
+3 cases that Study H reported as
 unrecoverable are recoverable by a vehicle allowed outside the nominal envelope.
 Those results were never statements about the vehicle's capability; they were
 statements about the *problem as posed*. Reported as lost vehicles, they would
@@ -65,13 +64,12 @@ The binding constraint names what each one needed:
 | Baseline limit the recovery had to break | Cases | Which |
 |:----------------------------------------|:--------|:--------------------------------------------|
 | glide cone | 3 | engine_out@38, engine_out@51, thrust_loss_50@46 |
-| altitude floor | 1 | engine_out@46 |
 
 
 ## Reading 2 — what the relaxation could not fix
 
 
-8 cases resisted the entire ladder:
+9 cases resisted the entire ladder:
 
 
 | Fault | Injected at | Altitude | Range to pad |
@@ -82,16 +80,17 @@ The binding constraint names what each one needed:
 | dead time | 38 s | 109 m | 499 m |
 | dead time | 55 s | 8 m | 17 m |
 | engine out | 42 s | 56 m | 264 m |
+| engine out | 46 s | 19 m | 87 m |
 | $\eta$=0.15 | 42 s | 56 m | 264 m |
 | $\eta$=0.15 | 46 s | 19 m | 87 m |
 
 
-The last level removes **every state constraint in the problem** — the cone,
-the speed box, the attitude and rate limits, and finally the altitude floor
-itself — leaving only the dynamics and the actuator bounds. A failure there is
-as close to "the vehicle cannot do it" as this machinery can get: there is no
-longer any restriction on the state to blame. **These are the cases a fault-tolerance budget should carry
-as real losses** — and there are 8 of
+The last level removes every state constraint **except $z > 0$** — the cone,
+the speed box, the attitude and rate limits all go, and the only thing still
+asked of the vehicle is to stay above the surface. A failure there is as close
+to "the vehicle cannot do it" as this machinery can get: nothing but the ground
+is in its way. **These are the cases a fault-tolerance budget should carry
+as real losses** — and there are 9 of
 them, not 11.
 
 
@@ -131,7 +130,7 @@ case, which Study H limit the new trajectory had to break and by how much.
 
 **A solver's "infeasible" is a property of the constraint set, and it must be
 reported as one.** The single most transferable result here is methodological:
-11 failures became 8 once the same states and the
+11 failures became 9 once the same states and the
 same plants were given a wider corridor. Any study that reports fault
 survivability from a constrained planner is reporting the constraints as much as
 the vehicle, and the only way to know the split is to vary them deliberately.
@@ -143,24 +142,22 @@ fault is unrecoverable after t = X *inside a 12° cone with
 t = Y with the corridor open" — two numbers, and the gap between them is the
 value of an envelope-expanding guidance mode.
 
-**Removing the state constraints entirely is a diagnosis, not a rescue.**
-1 case found a trajectory only with every
-state constraint gone, the altitude floor included — meaning the path they take
-passes through the lunar surface. They are not recoveries. What they establish
-is that the plant still has the authority to make the geometry, and that the
-binding difficulty is doing it above the ground. The
-8 cases that fail even there
-are short of authority outright.
+**The floor is never negotiable.** Every level of the ladder keeps $z > 0$.
+Dropping it would let the optimiser route a "recovery" through the ground and
+still score it against the landing gate, which inspects only the touchdown
+state — a trajectory that is arithmetic rather than flight. L4 is therefore the
+weakest honest problem available, and
+9 cases fail even it.
 
 **Relaxation buys a trajectory, not necessarily a landing.** Of the
-4 recovered cases, 2
+3 recovered cases, 2
 still land in the gate. The rest reach the
 surface outside it. Feasibility and success are different questions and the
 distinction survives the relaxation intact — which is what makes the recovered
 landings credible rather than an artefact of loosened scoring.
 
 **The cases that remain are worth more than the ones that moved.** After the
-ladder, 8 cases
+ladder, 9 cases
 are left. Those have now survived
 22 independent seeds across two studies and
 four corridors. That is a far stronger claim than the original

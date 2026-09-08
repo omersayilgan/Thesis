@@ -11,16 +11,16 @@ excursion that a 2-D plot draws as nothing.
 These figures put the paths back in 3-D, north-east-up, and sort them the way
 the study's own questions sort them:
 
-    by CAMPAIGN     baseline (Study H's corridor), relaxed (L1), and
-                    unconstrained (L5, every state constraint gone)
+    by CAMPAIGN     baseline (Study H's corridor), relaxed (L1), and the
+                    losses that survive every relaxation down to z > 0 alone
     by FAULT        one panel per plant, so a fault's whole family of
                     recoveries is seen together against the nominal
 
 Every panel carries the same three references: the nominal descent in grey, the
-landing pad at the origin, and the lunar surface as the z = 0 plane.  The last
-one earns its place here - the L5 trajectory is the only one in the study that
-goes through it, and in 3-D that is immediately visible rather than a number in
-a table.
+landing pad at the origin, and the lunar surface as the z = 0 plane.  No
+trajectory in the study crosses that plane: z > 0 is enforced in every problem
+solved here, including the weakest one, where it is the only constraint left on
+the state.
 
 Run:  python plot_trajectories_3d.py
 """
@@ -239,43 +239,55 @@ def fig_campaigns(base_rows, hr_rows, tjH, tjR, nom, path):
     print(f'[saved] {path}')
 
 
-def fig_subsurface(hr_rows, tjR, nom, path):
-    """The L5 trajectory on its own: the one path in the study that leaves the
-    surface behind, which is why it is not counted as a landing."""
-    sub = [r for r in hr_rows if r['outcome'] == 'subsurface']
-    if not sub:
-        return
-    r = sub[0]
-    p = path_of(tjR, r['point'], r['fault'])
-    if p is None:
-        return
-    lim = limits(nom, [p], focus=True)
+def fig_losses(base_rows, hr_rows, tjH, nom, path):
+    """Where the losses are, along the descent that produced them.
 
-    fig = plt.figure(figsize=(12.6, 5.2))
+    Every case here has now been refused a trajectory by five problems: Study
+    H's corridor, the hardening pass, and the four relaxation levels down to
+    L4, where the only thing still asked of the state is z > 0.  Plotting the
+    injection points on the nominal shows what the outcome tables cannot: they
+    are not scattered along the descent, they are stacked at the end of it.
+    """
+    hr = {(r['fault'], r['point']): r for r in hr_rows}
+    lost = [r for r in hr_rows if r['level'] == 'none']
+    won = [r for r in hr_rows if r['level'] != 'none']
+    landed = [r for r in base_rows if r['outcome'] == 'land']
+    if not lost:
+        return
+    paths = [p for r in landed[:1]
+             if (p := path_of(tjH, r['point'], r['fault'])) is not None]
+    lim = limits(nom, paths or [nom])
+
+    fig = plt.figure(figsize=(13.2, 5.4))
     for i, (elev, azim, name) in enumerate([(22, -58, 'oblique'),
-                                            (4, -90, 'from the side'),
-                                            (60, -70, 'from above')]):
+                                            (6, -90, 'from the side'),
+                                            (46, -74, 'from above')]):
         ax = fig.add_subplot(1, 3, i + 1, projection='3d')
         frame(ax, nom, lim)
-        below = p[2] < 0
-        ax.plot(*p, color=STATUS['subsurface'], lw=1.9, zorder=4)
-        ax.plot(p[0][below], p[1][below], p[2][below], color='#d03b3b', lw=2.6,
-                zorder=5)
-        ax.scatter([-r['rng']], [0], [r['alt']], color=INK, s=32, zorder=6)
+        # every injection point that kept its vehicle, for contrast
+        pts = {(r['point'], r['rng'], r['alt']) for r in landed}
+        ax.scatter([-p[1] for p in pts], [0] * len(pts), [p[2] for p in pts],
+                   color=STATUS['land'], s=16, alpha=0.55, zorder=4)
+        for r in won:
+            ax.scatter([-r['rng']], [0], [r['alt']], color='#7fc97f', s=54,
+                       marker='^', zorder=6, edgecolors=SURFACE, linewidths=0.8)
+        for r in lost:
+            ax.scatter([-r['rng']], [0], [r['alt']], color=STATUS['no_recovery'],
+                       s=60, marker='x', linewidths=2.0, zorder=7)
         style(ax, lim, name)
         ax.view_init(elev=elev, azim=azim)
-    fig.suptitle('L5 — the trajectory that exists only without the altitude '
-                 'floor', fontsize=12.5, weight='bold', color=INK, x=0.01,
-                 ha='left')
-    fig.text(0.01, 0.885,
-             f"{ic.CASES[r['fault']].short} injected at {r['t_f']:.0f} s. With "
-             f"every state constraint removed the solver finds a path to the "
-             f"pad, but it reaches {abs(r['alt_min']):.0f} m below the surface "
-             f"(red) before returning.\nIts touchdown still scores a clean "
-             f"gate margin of {r['margin']:.2f} — which is why the gate alone "
-             f"cannot say whether a trajectory is a landing.",
+
+    fig.suptitle('Where the losses sit on the descent',
+                 fontsize=12.5, weight='bold', color=INK, x=0.01, ha='left')
+    fig.text(0.01, 0.905,
+             f"{len(lost)} injection points still have no trajectory with every "
+             f"state constraint dropped except z > 0 (red ×); "
+             f"{len(won)} recovered once the glide cone was opened (green ▲).\n"
+             f"Green dots are the injection points that landed inside Study H's "
+             f"own corridor. The losses are not spread along the descent — they "
+             f"are stacked at the end of it.",
              fontsize=9, color=INK2, ha='left', va='top')
-    fig.tight_layout(rect=[0, 0.02, 1, 0.84])
+    fig.tight_layout(rect=[0, 0.02, 1, 0.86])
     fig.savefig(path, dpi=140)
     plt.close(fig)
     print(f'[saved] {path}')
@@ -299,8 +311,7 @@ def main():
 
     fig_campaigns(H, R, tjH, tjR, nom,
                   os.path.join(FIGURES, '3D2_relaxed_by_case.png'))
-    fig_subsurface(R, tjR, nom,
-                   os.path.join(FIGURES, '3D3_subsurface.png'))
+    fig_losses(H, R, tjH, nom, os.path.join(FIGURES, '3D3_losses.png'))
 
 
 if __name__ == '__main__':

@@ -50,8 +50,7 @@ def build():
     solved = [c for c in cases if c['level'] != 'none']
     landed = [c for c in solved if c['lands']]
     stuck = [c for c in cases if c['level'] == 'none']
-    l5 = [c for c in cases if c['level'] == 'L5']
-    flyable = [c for c in cases if c['level'] not in ('none', 'L5')]
+    flyable = [c for c in cases if c['level'] != 'none']
 
     n_solves = H['n_solves']
     n_land_H = sum(1 for f in H['faults'] for j in H['cells'][f]
@@ -119,9 +118,7 @@ This document sets the two against each other.
         ['Injections with a trajectory', f"{n_solves - R['n_no_recovery']} of {n_solves}",
          f"{flew_after} of {n_solves}",
          f"+{len(solved)}"],
-        ['...of which fly above the surface',
-         f"{n_solves - R['n_no_recovery']} of {n_solves}",
-         f"{land_before + len(flyable)} of {n_solves}", f"+{len(flyable)}"],
+
         ['Injections that land in the gate', f"{land_before} of {n_solves}",
          f"{land_after} of {n_solves}", f"+{len(landed)}"],
         ['Cases with no trajectory at all', str(R['n_no_recovery']),
@@ -175,11 +172,11 @@ vehicles.
                 ['Fault', 'Injected at', 'Altitude', 'Range to pad'],
                 [24, 12, 12, 14]))
         A(f"""
-The last level removes **every state constraint in the problem** — the cone,
-the speed box, the attitude and rate limits, and finally the altitude floor
-itself — leaving only the dynamics and the actuator bounds. A failure there is
-as close to "the vehicle cannot do it" as this machinery can get: there is no
-longer any restriction on the state to blame. **These are the cases a fault-tolerance budget should carry
+The last level removes every state constraint **except $z > 0$** — the cone,
+the speed box, the attitude and rate limits all go, and the only thing still
+asked of the vehicle is to stay above the surface. A failure there is as close
+to "the vehicle cannot do it" as this machinery can get: nothing but the ground
+is in its way. **These are the cases a fault-tolerance budget should carry
 as real losses** — and there {plural(len(stuck), 'is', 'are')} {len(stuck)} of
 {'them' if len(stuck) > 1 else 'it'}, not {R['n_no_recovery']}.
 """)
@@ -245,14 +242,12 @@ fault is unrecoverable after t = X *inside a {b['glide_deg']:.0f}° cone with
 t = Y with the corridor open" — two numbers, and the gap between them is the
 value of an envelope-expanding guidance mode.
 
-**Removing the state constraints entirely is a diagnosis, not a rescue.**
-{len(l5)} {plural(len(l5), 'case', 'cases')} found a trajectory only with every
-state constraint gone, the altitude floor included — meaning the path they take
-passes through the lunar surface. They are not recoveries. What they establish
-is that the plant still has the authority to make the geometry, and that the
-binding difficulty is doing it above the ground. The
-{len(stuck)} {plural(len(stuck), 'case', 'cases')} that fail even there
-{plural(len(stuck), 'is', 'are')} short of authority outright.
+**The floor is never negotiable.** Every level of the ladder keeps $z > 0$.
+Dropping it would let the optimiser route a "recovery" through the ground and
+still score it against the landing gate, which inspects only the touchdown
+state — a trajectory that is arithmetic rather than flight. L4 is therefore the
+weakest honest problem available, and
+{len(stuck)} {plural(len(stuck), 'case', 'cases')} fail even it.
 
 **Relaxation buys a trajectory, not necessarily a landing.** Of the
 {len(solved)} recovered {plural(len(solved), 'case', 'cases')}, {len(landed)}
@@ -264,7 +259,7 @@ landings credible rather than an artefact of loosened scoring.
 **The cases that remain are worth more than the ones that moved.** After the
 ladder, {len(stuck)} {plural(len(stuck), 'case', 'cases')}
 {plural(len(stuck), 'is', 'are')} left. Those have now survived
-{7 + len(R['ladder']) * len(R['seeds'])} independent seeds across two studies and
+{7 + (len(R['ladder']) - 1) * len(R['seeds']) + len(R.get('terminal_seeds') or R['seeds'])} independent seeds across two studies and
 four corridors. That is a far stronger claim than the original
 {R['n_no_recovery']} could support, and it is the number worth defending.
 

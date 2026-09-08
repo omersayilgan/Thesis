@@ -2,10 +2,10 @@
  "n_cases": 12,
  "n_no_recovery": 11,
  "n_gate_miss": 1,
- "n_solved": 4,
+ "n_solved": 3,
  "n_landed": 2,
- "n_subsurface": 1,
- "n_unsolved": 8,
+ "n_subsurface": 0,
+ "n_unsolved": 9,
  "ladder": [
   {
    "key": "L1",
@@ -27,25 +27,13 @@
   },
   {
    "key": "L4",
-   "label": "corridor removed (cone, speed, attitude, rate)",
-   "short": "corridor off",
+   "label": "all state constraints dropped except z > 0",
+   "short": "z > 0 only",
    "relax": [
     "cone",
     "vel",
     "att",
     "rate"
-   ]
-  },
-  {
-   "key": "L5",
-   "label": "all state constraints removed, altitude floor included",
-   "short": "no states",
-   "relax": [
-    "cone",
-    "vel",
-    "att",
-    "rate",
-    "alt"
    ]
   }
  ],
@@ -53,6 +41,14 @@
   0,
   8,
   -4
+ ],
+ "terminal_seeds": [
+  0,
+  8,
+  -4,
+  -8,
+  12,
+  20
  ],
  "iters": 1200,
  "by_level": {
@@ -64,9 +60,6 @@
   "L2": [],
   "L3": [],
   "L4": [],
-  "L5": [
-   "engine_out@46"
-  ],
   "none": [
    "dead_time@17",
    "dead_time@25",
@@ -74,6 +67,7 @@
    "dead_time@38",
    "dead_time@55",
    "engine_out@42",
+   "engine_out@46",
    "thrust_loss_85@42",
    "thrust_loss_85@46"
   ]
@@ -83,9 +77,6 @@
    "engine_out@38",
    "engine_out@51",
    "thrust_loss_50@46"
-  ],
-  "altitude floor": [
-   "engine_out@46"
   ]
  },
  "n_ramp": 6,
@@ -108,7 +99,7 @@
    "rng": 1745.6235411771163,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -141,7 +132,7 @@
    "rng": 1275.8782794737574,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -174,7 +165,7 @@
    "rng": 978.4891140323834,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -207,7 +198,7 @@
    "rng": 499.20971160107734,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -240,7 +231,7 @@
    "rng": 17.049075660045983,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -306,7 +297,7 @@
    "rng": 263.86321605494487,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -338,28 +329,28 @@
    "alt": 19.15574425039258,
    "rng": 87.31531456645605,
    "base_outcome": "no_recovery",
-   "level": "L5",
-   "level_label": "all state constraints removed, altitude floor included",
-   "outcome": "subsurface",
+   "level": "none",
+   "level_label": "infeasible at every level (L4-L4)",
+   "outcome": "no_recovery",
    "lands": false,
-   "margin": 0.600948556449293,
-   "binding": "altitude floor",
-   "binding_ratio": Infinity,
-   "cone_ratio": 29916487633.21985,
-   "path_min_deg": -64.83051883199067,
-   "att_max_deg": 122.8210849585698,
-   "rate_max_dps": 37.66184442612716,
-   "vax_max": 17.62562435555364,
-   "vnorm_max": 19.462310445068862,
-   "alt_min": -57.4583414025397,
-   "floor_ratio": Infinity,
-   "subsurface_depth": 57.4583414025397,
-   "cone_transient": 29916487633.21985,
-   "rate_transient": 3.7661844426127162,
-   "att_transient": 2.7293574435237735,
+   "margin": Infinity,
+   "binding": "n/a",
+   "binding_ratio": NaN,
+   "cone_ratio": NaN,
+   "path_min_deg": NaN,
+   "att_max_deg": NaN,
+   "rate_max_dps": NaN,
+   "vax_max": NaN,
+   "vnorm_max": NaN,
+   "alt_min": NaN,
+   "floor_ratio": NaN,
+   "subsurface_depth": null,
+   "cone_transient": "",
+   "rate_transient": "",
+   "att_transient": "",
    "base_margin": Infinity,
-   "iters": 62.0,
-   "wall": 15.30458116531372
+   "iters": NaN,
+   "wall": NaN
   },
   {
    "fault": "engine_out",
@@ -438,7 +429,7 @@
    "rng": 263.86321605494487,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -471,7 +462,7 @@
    "rng": 87.31531456645605,
    "base_outcome": "no_recovery",
    "level": "none",
-   "level_label": "infeasible at every level (L5-L5)",
+   "level_label": "infeasible at every level (L4-L4)",
    "outcome": "no_recovery",
    "lands": false,
    "margin": Infinity,
@@ -494,5 +485,5 @@
    "wall": NaN
   }
  ],
- "wall_hours": 0.013563053144348993
+ "wall_hours": 0.009311780598428514
 }

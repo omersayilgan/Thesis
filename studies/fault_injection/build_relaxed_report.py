@@ -48,14 +48,11 @@ def build():
     stuck = [c for c in cases if c['level'] == 'none']
     lv = {l['key']: l for l in h['ladder']}
     n_lv = len(h['ladder'])
-    l5 = [c for c in cases if c['level'] == 'L5']
-    n_l5 = len(l5)
-    real = [c for c in solved if c['level'] != 'L5']
-    sub = [c for c in cases if c['outcome'] == 'subsurface']
-    depths = [c.get('subsurface_depth') for c in sub if c.get('subsurface_depth')]
-    depth_note = (f", diving as deep as {max(depths):.0f} m below it"
-                  if depths else '')
-    n_seeds_total = 7 + len(h['ladder']) * len(h['seeds'])
+    # the terminal level carries the study's strongest claim and is searched
+    # harder than the rungs above it, so the two seed sets are counted apart
+    t_seeds = h.get('terminal_seeds') or h['seeds']
+    n_seeds_total = (7 + (len(h['ladder']) - 1) * len(h['seeds'])
+                     + len(t_seeds))
 
     def names(keys):
         return ', '.join(keys) if keys else 'none'
@@ -144,24 +141,27 @@ changes what counts as success, and it never invents hardware:
 * **The Apollo landing gate stands at every level.** A relaxed solve still has
   to touch down inside the same gate to be counted as a landing, which is why
   the results below distinguish *found a trajectory* from *landed*.
-* **The altitude floor stands through L4**, and is dropped only at **L5**.
+* **The altitude floor stands at every level.** The vehicle may not fly through
+  the surface, and there is no version of this question in which dropping that
+  is informative: a path through the ground is not a path the vehicle can fly,
+  yet its touchdown state would score against the landing gate exactly as if it
+  were — the gate inspects only the final state. Dropping it would manufacture
+  "recoveries" that are arithmetic, not flight.
 
-L5 needs stating plainly, because it is not a corridor at all: with the floor
-gone there is **no constraint on the state left anywhere in the problem** —
-only the dynamics and the actuator bounds. A trajectory found there may pass
-through the lunar surface, and it is therefore *not a landing* and is not
-counted as one. Its only job is diagnostic: it separates "the state constraints
-made this infeasible" from "this plant cannot fly this manoeuvre at all". A case
-that fails at L5 has failed on physics no relaxation can reach.
+That makes **L4 the weakest problem in this study**: every state constraint is
+gone except $z > 0$. A case that fails there fails with nothing asked of it but
+to stay above the surface, which is as close to "the vehicle cannot do it" as
+this machinery can get.
 
 ## Effort parity
 
 A relaxed solve that fails must fail for the same reason the baseline did, not
 because it was tried less hard. Study H spent 7 seeds at up to 1,200 iterations
-on each of these cases (2 in the campaign, 6 in the hardening pass). Every
-level here gets {len(h['seeds'])} horizon seeds at {h['iters']:,} iterations, so
-a case still infeasible at {h['ladder'][-1]['key']} has now resisted
-**{n_seeds_total} seeds** in total.
+on each of these cases (2 in the campaign, 6 in the hardening pass). Each rung
+here gets {len(h['seeds'])} horizon seeds at {h['iters']:,} iterations, and the
+terminal rung {h['ladder'][-1]['key']} — where a failure is the study's
+strongest claim — gets {len(t_seeds)}. A case still infeasible there has now
+resisted **{n_seeds_total} seeds** in total.
 
 # Results
 
@@ -169,11 +169,6 @@ Of the {h['n_cases']} cases carried forward — {h['n_no_recovery']} that found 
 trajectory and {h['n_gate_miss']} that flew but missed the gate —
 **{h['n_solved']} found a trajectory** once the corridor was relaxed, and
 **{h['n_landed']}** of those still land inside the unchanged Apollo gate.
-{n_l5} of the trajectories {'was' if n_l5 == 1 else 'were'} found only at L5,
-with every state constraint gone including the surface;
-{'it flies' if n_l5 == 1 else 'they fly'} below the ground and
-{'is' if n_l5 == 1 else 'are'} therefore reported as `subsurface` rather than
-counted as {'a landing' if n_l5 == 1 else 'landings'}.
 {'Every case yielded to some level of relaxation.' if not stuck else
  f"**{len(stuck)}** remained infeasible at every level."}
 
@@ -234,18 +229,6 @@ moved.
 
     A(f"""
 # What this means
-
-**The surface is where the diagnosis splits.** {n_l5} of the cases have a
-trajectory only once the altitude floor is removed{depth_note}. That is not a
-recovery — the vehicle reaches the pad by flying through the ground — and the
-touchdown score does not reveal it, because the gate inspects only the final
-state: {'this trajectory scores' if n_l5 == 1 else 'these trajectories score'}
-a clean margin at the end of a path that spent most of its length underground.
-{'It is' if n_l5 == 1 else 'They are'} reported as `subsurface`, not as a
-landing. What {'it establishes' if n_l5 == 1 else 'they establish'} is
-diagnostic: the plant retains enough authority to make the *geometry*, and what
-it cannot do is make it while staying above the surface. A case that fails even
-there is short of control authority outright.
 
 **A failed solve is a statement about the problem, not only about the vehicle.**
 {h['n_solved']} of {h['n_cases']} cases that Study H recorded as unrecoverable
