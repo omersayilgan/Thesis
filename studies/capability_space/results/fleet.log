@@ -1,0 +1,48 @@
+vehicle                              class               units    healthy AMS support
+  Delta IV Heavy                       Boosters            3e/0r   dim 3  reach 2.693e+07
+  Ariane 5 ECA                         Boosters            1e/0r   dim 2  reach 1.970e+06
+  Vega-C                               Boosters            1e/0r   dim 2  reach 7.235e+06
+  Vega                                 Boosters            1e/0r   dim 2  reach 3.924e+06
+  GRACE-FO (per satellite)             LEO Satellites      2e/12r   dim 3  reach 4.024e-02
+  Sentinel-3A                          LEO Satellites      0e/8r   dim 3  reach 3.900e+00
+  SMAP                                 LEO Satellites      0e/8r   dim 3  reach 6.751e+00
+  Sentinel-1A                          LEO Satellites      no actuator geometry — skipped
+  Solar Dynamics Observatory (SDO)     GEO Satellites      1e/8r   dim 3  reach 4.893e+01
+  Meteosat Second Generation (MSG)     GEO Satellites      2e/6r   dim 3  reach 1.999e+02
+  GOES-16 (GOES-R)                     GEO Satellites      no actuator geometry — skipped
+  GOES-19 (GOES-U)                     GEO Satellites      no actuator geometry — skipped
+  Orion (CM + European Service Modul   Crewed Vehicles     1e/24r   dim 3  reach 1.201e+04
+  Apollo Command & Service Module      Crewed Vehicles     1e/16r   dim 3  reach 3.440e+04
+  Apollo Lunar Module                  Crewed Vehicles     1e/16r   dim 3  reach 1.261e+04
+  Crew Dragon (Dragon 2)               Crewed Vehicles     8e/16r   dim 3  reach 1.503e+05
+  Juno                                 Deep Space Probes   1e/0r   dim 0  reach 0.000e+00
+  Cassini (Cassini-Huygens)            Deep Space Probes   2e/16r   dim 3  reach 2.967e+02
+  New Horizons                         Deep Space Probes   4e/12r   dim 3  reach 4.109e+00
+  Europa Clipper                       Deep Space Probes   24e/0r   dim 2  reach 1.361e+02
+  Voyager 1                            Deep Space Probes   0e/16r   dim 3  reach 3.059e+00
+  Delta IV Heavy                       done
+  Ariane 5 ECA                         done
+  Vega-C                               done
+  Vega                                 done
+  GRACE-FO (per satellite)             done
+  Sentinel-3A                          done
+  SMAP                                 done
+  Solar Dynamics Observatory (SDO)     done
+  Meteosat Second Generation (MSG)     done
+  Orion (CM + European Service Modul   done
+  Apollo Command & Service Module      done
+  Apollo Lunar Module                  done
+  Crew Dragon (Dragon 2)               done
+  Juno                                 done
+  Cassini (Cassini-Huygens)            done
+  New Horizons                         done
+  Europa Clipper                       done
+  Voyager 1                            done
+[saved] /home/omersayilgan/Desktop/ThesisGit/studies/capability_space/results/IF_fleet.csv  (180 rows)
+
+[saved] results/IF_fleet.csv  (180 rows)
+[saved] results/headline_IF.json
+
+fault-response similarity (mean |difference| in AMS retention)
+  same spacecraft class : 0.130  (21 pairs)
+  different classes     : 0.187  (100 pairs)

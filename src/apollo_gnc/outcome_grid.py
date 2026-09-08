@@ -36,13 +36,20 @@ INK, INK2, MUTED = '#0b0b0b', '#52514e', '#8a8985'
 STATUS = {'land': '#0ca30c', 'gate_miss': '#fab219',
           'subsurface': '#2b2b6b', 'no_recovery': '#d03b3b',
           'no_replan': '#d03b3b', 'lost_in_delay': '#8b2f8b',
-          'already_lost': '#8a8985'}
+          'already_lost': '#8a8985',
+          # capability-space outcomes (Study I): the same grid, asking what a
+          # fault leaves of an actuator set rather than what it does to a
+          # trajectory
+          'gained': '#2a78d6', 'retained': '#0ca30c', 'reduced': '#fab219',
+          'lost': '#d03b3b'}
 OUT_LABEL = {'land': 'landed', 'gate_miss': 'flew, missed the gate',
              'subsurface': 'path goes below the surface',
              'no_recovery': 'no trajectory found',
              'no_replan': 'no re-plan found',
              'lost_in_delay': 'lost during the reaction delay',
-             'already_lost': 'lost before the planner ran'}
+             'already_lost': 'lost before the planner ran',
+             'gained': 'more than healthy', 'retained': 'as healthy',
+             'reduced': 'reduced', 'lost': 'lost'}
 
 # white -> green for landing share; deliberately not a rainbow, so the eye
 # reads "more green = more landings" without decoding anything
@@ -137,7 +144,8 @@ def outcome_grid(cells, row_labels, col_labels, path, title, subtitle='',
 
     if mode == 'categorical':
         order = ['land', 'gate_miss', 'subsurface', 'no_recovery',
-                 'no_replan', 'lost_in_delay', 'already_lost']
+                 'no_replan', 'lost_in_delay', 'already_lost',
+                 'gained', 'retained', 'reduced', 'lost']
         handles = [Patch(facecolor=STATUS[o], label=OUT_LABEL[o])
                    for o in order if o in seen]
     else:
